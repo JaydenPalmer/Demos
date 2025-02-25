@@ -11,6 +11,7 @@ import {
   NavbarToggler,
 } from "reactstrap";
 import { logout } from "../managers/authManager";
+import "./styles/navbar.css";
 
 export default function NavBar({ loggedInUser, setLoggedInUser }) {
   const [open, setOpen] = useState(false);
@@ -18,41 +19,45 @@ export default function NavBar({ loggedInUser, setLoggedInUser }) {
   const toggleNavbar = () => setOpen(!open);
 
   return (
-    <div>
-      <Navbar color="light" light fixed="true" expand="lg">
-        <NavbarBrand className="mr-auto" tag={RRNavLink} to="/">
-          🧹🧼House Rules
-        </NavbarBrand>
-        {loggedInUser ? (
-          <>
-            <NavbarToggler onClick={toggleNavbar} />
-            <Collapse isOpen={open} navbar>
-              <Nav navbar></Nav>
-            </Collapse>
-            <Button
-              color="primary"
-              onClick={(e) => {
-                e.preventDefault();
-                setOpen(false);
-                logout().then(() => {
-                  setLoggedInUser(null);
-                  setOpen(false);
-                });
-              }}
-            >
-              Logout
-            </Button>
-          </>
-        ) : (
-          <Nav navbar>
-            <NavItem>
-              <NavLink tag={RRNavLink} to="/login">
-                <Button color="primary">Login</Button>
-              </NavLink>
-            </NavItem>
-          </Nav>
-        )}
-      </Navbar>
+    <div className="navbar-wrapper">
+      <div className="navbar-content">
+        <div className="navbar-brand">
+          <NavLink tag={RRNavLink} to="/">
+            {"[demos]"}
+          </NavLink>
+        </div>
+
+        <div className="navbar-controls">
+          {loggedInUser ? (
+            <>
+              <button className="menu-dots-button" onClick={toggleNavbar}>
+                ...
+              </button>
+
+              {open && (
+                <div className="logout-dropdown">
+                  <Button
+                    color="primary"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      setOpen(false);
+                      logout().then(() => {
+                        setLoggedInUser(null);
+                      });
+                    }}
+                  >
+                    Logout
+                  </Button>
+                </div>
+              )}
+            </>
+          ) : (
+            <NavLink tag={RRNavLink} to="/login">
+              <Button color="primary">Login</Button>
+            </NavLink>
+          )}
+        </div>
+      </div>
     </div>
   );
 }
