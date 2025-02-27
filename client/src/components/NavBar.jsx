@@ -19,7 +19,7 @@ export default function NavBar({ loggedInUser, setLoggedInUser }) {
   const toggleNavbar = () => setOpen(!open);
 
   return (
-    <div className="navbar-wrapper">
+    <div className="navbar-wrapper mb-5">
       <div className="navbar-content">
         <div className="navbar-brand">
           <NavLink tag={RRNavLink} to="/">
