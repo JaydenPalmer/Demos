@@ -420,6 +420,98 @@ public class DemosDbContext : IdentityDbContext<IdentityUser>
                     UploadDate = new DateTime(2023, 5, 5, 13, 25, 0),
                     IsComplete = true,
                     CoverArtUrl = "https://picsum.photos/seed/track8/300/300",
+                },
+                // Add these to your Track entity seed data
+                new Track
+                {
+                    Id = 9,
+                    CreatorId = 2, // Melinda Jackson
+                    Title = "Solo Flight",
+                    AudioUrl = "https://example.com/audio/solo_flight.mp3",
+                    PercentageDone = 100,
+                    UploadDate = new DateTime(2023, 7, 25, 10, 15, 0),
+                    IsComplete = true,
+                    CoverArtUrl = "https://picsum.photos/seed/track9/300/300",
+                },
+                new Track
+                {
+                    Id = 10,
+                    CreatorId = 3, // Daniel Rodriguez
+                    Title = "Midnight Jazz",
+                    AudioUrl = "https://example.com/audio/midnight_jazz.mp3",
+                    PercentageDone = 100,
+                    UploadDate = new DateTime(2023, 7, 28, 14, 30, 0),
+                    IsComplete = true,
+                    CoverArtUrl = "https://picsum.photos/seed/track10/300/300",
+                },
+                new Track
+                {
+                    Id = 11,
+                    CreatorId = 4, // Sara Chen
+                    Title = "Morning Meditation",
+                    AudioUrl = "https://example.com/audio/morning_meditation.mp3",
+                    PercentageDone = 90,
+                    UploadDate = new DateTime(2023, 7, 22, 9, 45, 0),
+                    Deadline = new DateTime(2023, 8, 15, 23, 59, 59),
+                    IsComplete = false,
+                    CoverArtUrl = "https://picsum.photos/seed/track11/300/300",
+                },
+                new Track
+                {
+                    Id = 12,
+                    CreatorId = 5, // Marcus Johnson
+                    Title = "Urban Beat",
+                    AudioUrl = "https://example.com/audio/urban_beat.mp3",
+                    PercentageDone = 100,
+                    UploadDate = new DateTime(2023, 7, 15, 16, 20, 0),
+                    IsComplete = true,
+                    CoverArtUrl = "https://picsum.photos/seed/track12/300/300",
+                },
+                new Track
+                {
+                    Id = 13,
+                    CreatorId = 2, // Melinda Jackson
+                    Title = "Rainy Day",
+                    AudioUrl = "https://example.com/audio/rainy_day.mp3",
+                    PercentageDone = 75,
+                    UploadDate = new DateTime(2023, 7, 18, 11, 30, 0),
+                    Deadline = new DateTime(2023, 8, 20, 23, 59, 59),
+                    IsComplete = false,
+                    CoverArtUrl = "https://picsum.photos/seed/track13/300/300",
+                },
+                new Track
+                {
+                    Id = 14,
+                    CreatorId = 3, // Daniel Rodriguez
+                    Title = "Desert Sands",
+                    AudioUrl = "https://example.com/audio/desert_sands.mp3",
+                    PercentageDone = 100,
+                    UploadDate = new DateTime(2023, 7, 10, 13, 45, 0),
+                    IsComplete = true,
+                    CoverArtUrl = "https://picsum.photos/seed/track14/300/300",
+                },
+                new Track
+                {
+                    Id = 15,
+                    CreatorId = 4, // Sara Chen
+                    Title = "Acoustic Session",
+                    AudioUrl = "https://example.com/audio/acoustic_session.mp3",
+                    PercentageDone = 100,
+                    UploadDate = new DateTime(2023, 7, 5, 15, 10, 0),
+                    IsComplete = true,
+                    CoverArtUrl = "https://picsum.photos/seed/track15/300/300",
+                },
+                new Track
+                {
+                    Id = 16,
+                    CreatorId = 5, // Marcus Johnson
+                    Title = "Future Nostalgia",
+                    AudioUrl = "https://example.com/audio/future_nostalgia.mp3",
+                    PercentageDone = 60,
+                    UploadDate = new DateTime(2023, 7, 20, 10, 30, 0),
+                    Deadline = new DateTime(2023, 9, 1, 23, 59, 59),
+                    IsComplete = false,
+                    CoverArtUrl = "https://picsum.photos/seed/track16/300/300",
                 }
             );
 
@@ -618,6 +710,79 @@ public class DemosDbContext : IdentityDbContext<IdentityUser>
                     Id = 13,
                     TrackId = 8,
                     InstrumentId = 7,
+                },
+                // Add these to your TrackInstrument entity seed data
+                new TrackInstrument
+                {
+                    Id = 14,
+                    TrackId = 9,
+                    InstrumentId = 5, // Piano
+                },
+                new TrackInstrument
+                {
+                    Id = 15,
+                    TrackId = 10,
+                    InstrumentId = 6, // Saxophone
+                },
+                new TrackInstrument
+                {
+                    Id = 16,
+                    TrackId = 10,
+                    InstrumentId = 3, // Bass Guitar
+                },
+                new TrackInstrument
+                {
+                    Id = 17,
+                    TrackId = 11,
+                    InstrumentId = 1, // Acoustic Guitar
+                },
+                new TrackInstrument
+                {
+                    Id = 18,
+                    TrackId = 12,
+                    InstrumentId = 4, // Drum Kit
+                },
+                new TrackInstrument
+                {
+                    Id = 19,
+                    TrackId = 12,
+                    InstrumentId = 7, // Synthesizer
+                },
+                new TrackInstrument
+                {
+                    Id = 20,
+                    TrackId = 13,
+                    InstrumentId = 5, // Piano
+                },
+                new TrackInstrument
+                {
+                    Id = 21,
+                    TrackId = 14,
+                    InstrumentId = 1, // Acoustic Guitar
+                },
+                new TrackInstrument
+                {
+                    Id = 22,
+                    TrackId = 15,
+                    InstrumentId = 1, // Acoustic Guitar
+                },
+                new TrackInstrument
+                {
+                    Id = 23,
+                    TrackId = 15,
+                    InstrumentId = 8, // Violin
+                },
+                new TrackInstrument
+                {
+                    Id = 24,
+                    TrackId = 16,
+                    InstrumentId = 7, // Synthesizer
+                },
+                new TrackInstrument
+                {
+                    Id = 25,
+                    TrackId = 16,
+                    InstrumentId = 10, // Electronic Drum Pad
                 }
             );
 
