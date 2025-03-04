@@ -10,9 +10,10 @@ import {
   Card,
 } from "reactstrap";
 import { useEffect, useState } from "react";
-import { getTracksByUserId } from "../../managers/trackManager";
+import { createTrack, getTracksByUserId } from "../../managers/trackManager";
 import { getAllInstruments } from "../../managers/instrumentManager";
 import { getAllInstrumentCategories } from "../../managers/instrumentCategoryManager";
+import { uploadToCloudinary } from "../../managers/cloudinaryManager";
 
 export default function CreateTrack({ loggedInUser }) {
   const [instruments, setInstruments] = useState([]);
@@ -83,13 +84,58 @@ export default function CreateTrack({ loggedInUser }) {
       )
     : [];
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    // Handle form submission logic here
-    console.log({
-      ...formData,
-      selectedInstruments,
-    });
+
+    // required fields
+    if (!formData.title) {
+      window.alert("Please enter a track title");
+      return;
+    }
+
+    if (!formData.audioFile) {
+      window.alert("Please upload an audio file");
+      return;
+    }
+
+    try {
+      // Upload audio file if one exists
+      let audioUrl = null;
+      if (formData.audioFile) {
+        audioUrl = await uploadToCloudinary(formData.audioFile);
+      }
+
+      // creating data object for backend with the audio url from cloudinary
+      const trackData = {
+        title: formData.title,
+        description: formData.description,
+        percentageDone: formData.percentageDone,
+        deadline: formData.deadline ? new Date(formData.deadline) : null,
+        coverArtUrl: formData.coverArtUrl,
+        audioUrl: audioUrl,
+        creatorId: loggedInUser.id,
+        instrumentIds: selectedInstruments,
+      };
+
+      // Send to API
+      await createTrack(trackData);
+
+      console.log("Track created with data:", trackData);
+
+      // Reset form or redirect
+    } catch (error) {
+      console.error("Error creating track:", error);
+    }
+  };
+
+  const handleFileChange = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      // storing the audio so there can be a preview and can be sent to cloudinary
+      const updatedFormData = { ...formData };
+      updatedFormData.audioFile = file;
+      setFormData(updatedFormData);
+    }
   };
 
   return (
@@ -121,6 +167,28 @@ export default function CreateTrack({ loggedInUser }) {
                 Change Cover
               </Button>
             </div>
+            <FormGroup>
+              <Label for="audioFile" className="fw-bold mt-2">
+                Upload Audio
+              </Label>
+              <Input
+                type="file"
+                id="audioFile"
+                name="audioFile"
+                accept="audio/*"
+                onChange={handleFileChange}
+                className="mb-3"
+              />
+            </FormGroup>
+            {formData.audioFile && (
+              <div className="mb-3">
+                <audio
+                  controls
+                  src={URL.createObjectURL(formData.audioFile)}
+                  className="w-100"
+                />
+              </div>
+            )}
             <div className="mt-4">
               <h5 className="mb-2">Instrument Categories</h5>
               <div className="d-flex flex-wrap gap-1">
@@ -242,22 +310,6 @@ export default function CreateTrack({ loggedInUser }) {
                 value={formData.deadline}
                 onChange={handleChange}
                 className="mb-3"
-              />
-            </FormGroup>
-            {/* Description Input */}
-            <FormGroup>
-              <Label for="description" className="fw-bold">
-                Description
-              </Label>
-              <Input
-                type="textarea"
-                id="description"
-                name="description"
-                placeholder="Describe your track..."
-                value={formData.description}
-                onChange={handleChange}
-                rows="3"
-                className="mb-4"
               />
             </FormGroup>
           </Col>

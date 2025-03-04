@@ -22,3 +22,22 @@ export const getTracksByUserId = async (userId) => {
     return null;
   }
 };
+
+//create the track
+
+export const createTrack = async (trackData) => {
+  const response = await fetch(_apiUrl, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(trackData),
+  });
+
+  if (!response.ok) {
+    const errorData = await response.text();
+    throw new Error(`Error creating track: ${errorData}`);
+  }
+
+  return await response.json();
+};
