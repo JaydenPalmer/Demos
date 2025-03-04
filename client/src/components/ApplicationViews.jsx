@@ -3,6 +3,7 @@ import { AuthorizedRoute } from "./auth/AuthorizedRoute";
 import Login from "./auth/Login";
 import Register from "./auth/Register";
 import MusicTitleCard from "./tracks&albums/MusicTitleCard";
+import CreateTrack from "./tracks&albums/CreateTrack";
 
 export default function ApplicationViews({ loggedInUser, setLoggedInUser }) {
   return (
@@ -17,10 +18,10 @@ export default function ApplicationViews({ loggedInUser, setLoggedInUser }) {
           }
         />
         <Route
-          path="bikes"
+          path="createTrack"
           element={
             <AuthorizedRoute loggedInUser={loggedInUser}>
-              <p>Employees</p>
+              {<CreateTrack loggedInUser={loggedInUser} />}
             </AuthorizedRoute>
           }
         />

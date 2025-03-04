@@ -1,11 +1,14 @@
 import { useEffect, useState } from "react";
 import { getTracksByUserId } from "../../managers/trackManager";
 import { Button } from "reactstrap";
+import { useNavigate } from "react-router-dom";
 
 export default function MusicTitleCard({ loggedInUser }) {
   const [music, setMusic] = useState([]);
   const [openMenuId, setOpenMenuId] = useState(null);
   const [isExpanded, setIsExpanded] = useState(false);
+
+  const navigate = useNavigate();
 
   const toggleMenu = (id) => {
     if (openMenuId === id) {
@@ -20,12 +23,12 @@ export default function MusicTitleCard({ loggedInUser }) {
   }, [loggedInUser]);
 
   const handleTrackNavigation = () => {
-    onCreateTrack && onCreateTrack();
+    navigate("/createTrack");
     setIsExpanded(false);
   };
 
   const handleAlbumNavigation = () => {
-    onCreateAlbum && onCreateAlbum();
+    window.alert("this has not been set up yet");
     setIsExpanded(false);
   };
 
@@ -147,7 +150,6 @@ export default function MusicTitleCard({ loggedInUser }) {
             </div>
           )}
 
-          {/* Main Floating Button */}
           <Button
             color="light"
             className="d-flex align-items-center justify-content-center"
