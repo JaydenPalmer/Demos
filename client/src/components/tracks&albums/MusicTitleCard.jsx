@@ -61,6 +61,13 @@ export default function MusicTitleCard({ loggedInUser }) {
                       objectFit: "cover",
                       borderRadius: "4px",
                     }}
+                    onClick={() => {
+                      if (item.album) {
+                        navigate(`/album/${item.album.id}`);
+                      } else {
+                        navigate(`/track/${item.id}`);
+                      }
+                    }}
                   />
                 </div>
                 <h4 className="mt-2">

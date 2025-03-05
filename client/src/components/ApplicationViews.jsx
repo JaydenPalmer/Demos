@@ -4,6 +4,7 @@ import Login from "./auth/Login";
 import Register from "./auth/Register";
 import MusicTitleCard from "./tracks&albums/MusicTitleCard";
 import CreateTrack from "./tracks&albums/CreateTrack";
+import TrackDetailsView from "./tracks&albums/TrackDetailsView";
 
 export default function ApplicationViews({ loggedInUser, setLoggedInUser }) {
   return (
@@ -25,20 +26,12 @@ export default function ApplicationViews({ loggedInUser, setLoggedInUser }) {
             </AuthorizedRoute>
           }
         />
-        <Route path="workorders">
+        <Route path="track/:id">
           <Route
             index
             element={
               <AuthorizedRoute loggedInUser={loggedInUser}>
-                <p>Employees</p>
-              </AuthorizedRoute>
-            }
-          />
-          <Route
-            path="create"
-            element={
-              <AuthorizedRoute loggedInUser={loggedInUser}>
-                <p>Employees</p>
+                {<TrackDetailsView loggedInUser={loggedInUser} />}
               </AuthorizedRoute>
             }
           />

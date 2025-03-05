@@ -23,6 +23,29 @@ export const getTracksByUserId = async (userId) => {
   }
 };
 
+export const getTrackByTrackId = async (trackId) => {
+  try {
+    const params = new URLSearchParams();
+
+    if (trackId !== null && trackId > 0) {
+      params.append("trackId", trackId);
+    }
+
+    const url = params.toString() ? `${_apiUrl}?${params.toString()}` : _apiUrl;
+
+    const response = await fetch(url);
+
+    if (!response.ok) {
+      throw new Error(`HTTP error! Status ${response.status}`);
+    }
+
+    return response.json();
+  } catch (error) {
+    console.error("Error fetching tracks by user:", error);
+    return null;
+  }
+};
+
 //create the track
 
 export const createTrack = async (trackData) => {
@@ -50,5 +73,34 @@ export const deleteTrack = async (trackId) => {
   });
   if (!response.ok) {
     throw new Error(`HTTP Error! Status ${response.status}`);
+  }
+};
+
+//edit the track
+
+export const updateTrack = async (trackData) => {
+  try {
+    console.log("Sending update with data:", trackData); // Log what you're sending
+
+    const response = await fetch(`/api/Track/${trackData.id}`, {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(trackData),
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error("Error response:", errorText); // Log the error response
+      throw new Error(
+        `Failed to update track (${response.status}): ${errorText}`
+      );
+    }
+
+    return await getTrackByTrackId(trackData.id);
+  } catch (error) {
+    console.error("Error in updateTrack:", error);
+    throw error;
   }
 };

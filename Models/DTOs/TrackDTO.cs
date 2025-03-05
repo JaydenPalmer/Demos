@@ -10,7 +10,9 @@ public class TrackDTO
     public DateTime? Deadline { get; set; }
     public bool IsComplete { get; set; }
     public string CoverArtUrl { get; set; }
+    public int? TrackOrder { get; set; }
 
     public UserProfileDTO Creator { get; set; }
     public AlbumDTO Album { get; set; }
+    public List<InstrumentDTO> Instruments { get; set; } = new List<InstrumentDTO>();
 }

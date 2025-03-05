@@ -52,9 +52,7 @@ export default function NavBar({ loggedInUser, setLoggedInUser }) {
               )}
             </>
           ) : (
-            <NavLink tag={RRNavLink} to="/login">
-              <Button color="primary">Login</Button>
-            </NavLink>
+            ""
           )}
         </div>
       </div>
