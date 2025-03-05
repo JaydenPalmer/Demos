@@ -111,4 +111,111 @@ public class TrackController : ControllerBase
             return StatusCode(500, $"An error occurred while processing your request {ex.Message}");
         }
     }
+
+    [HttpPost]
+    [Authorize]
+    public IActionResult CreateTrack(TrackCreateDTO trackDTO)
+    {
+        try
+        {
+            //check if user exists
+            var user = _dbContext.UserProfiles.Find(trackDTO.CreatorId);
+            if (user == null)
+            {
+                return NotFound("User not found");
+            }
+
+            //create the track entity
+            var newTrack = new Track
+            {
+                Title = trackDTO.Title,
+                AudioUrl = trackDTO.AudioUrl,
+                CoverArtUrl = trackDTO.CoverArtUrl,
+                PercentageDone = trackDTO.PercentageDone > 100 ? 100 : trackDTO.PercentageDone,
+                Deadline = trackDTO.Deadline,
+                UploadDate = DateTime.Now,
+                IsComplete = trackDTO.PercentageDone >= 100 ? true : false,
+                CreatorId = trackDTO.CreatorId,
+            };
+
+            _dbContext.Tracks.Add(newTrack);
+            _dbContext.SaveChanges();
+
+            //add instruments if provided
+            if (trackDTO.InstrumentIds != null && trackDTO.InstrumentIds.Count > 0)
+            {
+                foreach (var instrumentId in trackDTO.InstrumentIds)
+                {
+                    //check if instrument exists
+                    if (_dbContext.Instruments.Any(i => i.Id == instrumentId))
+                    {
+                        var trackInstrument = new TrackInstrument
+                        {
+                            TrackId = newTrack.Id,
+                            InstrumentId = instrumentId,
+                        };
+                        _dbContext.TrackInstruments.Add(trackInstrument);
+                    }
+                }
+                _dbContext.SaveChanges();
+            }
+
+            return Created(
+                $"/api/Track/{newTrack.Id}",
+                new TrackDTO
+                {
+                    Id = newTrack.Id,
+                    Title = newTrack.Title,
+                    AudioUrl = newTrack.AudioUrl,
+                    CoverArtUrl = newTrack.CoverArtUrl,
+                    PercentageDone = newTrack.PercentageDone,
+                    Deadline = newTrack.Deadline,
+                    UploadDate = newTrack.UploadDate,
+                    IsComplete = newTrack.IsComplete,
+                    Creator = new UserProfileDTO
+                    {
+                        Id = user.Id,
+                        FirstName = user.FirstName,
+                        LastName = user.LastName,
+                        UserName = user.UserName,
+                        Email = user.Email,
+                        ProfileImage = user.ProfileImage,
+                        IsArtist = user.IsArtist,
+                    },
+                }
+            );
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, $"An error occurred while processing your request {ex.Message}");
+        }
+    }
+
+    [HttpDelete("{id}")]
+    [Authorize]
+    public IActionResult Delete(int id)
+    {
+        try
+        {
+            if (id <= 0)
+            {
+                return BadRequest("TrackId Must Be A Positive Integer");
+            }
+
+            Track track = _dbContext.Tracks.SingleOrDefault(t => t.Id == id);
+
+            if (track == null)
+            {
+                return NotFound("This Track Doesn't Exist");
+            }
+
+            _dbContext.Tracks.Remove(track);
+            _dbContext.SaveChanges();
+            return NoContent();
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, $"Error processing your request {ex.Message}");
+        }
+    }
 }

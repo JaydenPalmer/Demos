@@ -22,3 +22,33 @@ export const getTracksByUserId = async (userId) => {
     return null;
   }
 };
+
+//create the track
+
+export const createTrack = async (trackData) => {
+  const response = await fetch(_apiUrl, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(trackData),
+  });
+
+  if (!response.ok) {
+    const errorData = await response.text();
+    throw new Error(`Error creating track: ${errorData}`);
+  }
+
+  return await response.json();
+};
+
+//delete the track
+
+export const deletePost = async (trackId) => {
+  const response = await fetch(`${_apiUrl}/${trackId}`, {
+    method: "DELETE",
+  });
+  if (!response.ok) {
+    throw new Error(`HTTP Error! Status ${response.status}`);
+  }
+};
