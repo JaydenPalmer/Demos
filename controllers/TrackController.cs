@@ -190,4 +190,32 @@ public class TrackController : ControllerBase
             return StatusCode(500, $"An error occurred while processing your request {ex.Message}");
         }
     }
+
+    [HttpDelete("{id}")]
+    [Authorize]
+    public IActionResult Delete(int id)
+    {
+        try
+        {
+            if (id <= 0)
+            {
+                return BadRequest("TrackId Must Be A Positive Integer");
+            }
+
+            Track track = _dbContext.Tracks.SingleOrDefault(t => t.Id == id);
+
+            if (track == null)
+            {
+                return NotFound("This Track Doesn't Exist");
+            }
+
+            _dbContext.Tracks.Remove(track);
+            _dbContext.SaveChanges();
+            return NoContent();
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, $"Error processing your request {ex.Message}");
+        }
+    }
 }

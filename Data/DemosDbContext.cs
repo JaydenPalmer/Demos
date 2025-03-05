@@ -915,5 +915,53 @@ public class DemosDbContext : IdentityDbContext<IdentityUser>
                     AddedDate = new DateTime(2023, 7, 8, 13, 40, 0),
                 }
             );
+
+        // Configure Album -> AlbumTrack relationship (existing)
+        modelBuilder
+            .Entity<AlbumTrack>()
+            .HasOne(at => at.Album)
+            .WithMany(a => a.AlbumTracks)
+            .HasForeignKey(at => at.AlbumId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        // Configure AlbumTrack -> Track relationship (modify to cascade)
+        modelBuilder
+            .Entity<AlbumTrack>()
+            .HasOne(at => at.Track)
+            .WithMany(t => t.AlbumTracks)
+            .HasForeignKey(at => at.TrackId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        // Configure Track -> TrackInstrument relationship (existing)
+        modelBuilder
+            .Entity<TrackInstrument>()
+            .HasOne(ti => ti.Track)
+            .WithMany(t => t.TrackInstruments)
+            .HasForeignKey(ti => ti.TrackId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        // Configure Track -> Note relationship
+        modelBuilder
+            .Entity<Note>()
+            .HasOne(n => n.Track)
+            .WithMany(t => t.Notes)
+            .HasForeignKey(n => n.TrackId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        // Configure Album -> AlbumCollaborator relationship
+        modelBuilder
+            .Entity<AlbumCollaborator>()
+            .HasOne(ac => ac.Album)
+            .WithMany(a => a.Collaborators)
+            .HasForeignKey(ac => ac.AlbumId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        // Configure Album -> Note relationship
+        modelBuilder
+            .Entity<Note>()
+            .HasOne(n => n.Album)
+            .WithMany(a => a.Notes)
+            .HasForeignKey(n => n.AlbumId)
+            .OnDelete(DeleteBehavior.Cascade);
     }
 }

@@ -14,6 +14,7 @@ import { createTrack, getTracksByUserId } from "../../managers/trackManager";
 import { getAllInstruments } from "../../managers/instrumentManager";
 import { getAllInstrumentCategories } from "../../managers/instrumentCategoryManager";
 import { uploadToCloudinary } from "../../managers/cloudinaryManager";
+import { useNavigate } from "react-router-dom";
 
 export default function CreateTrack({ loggedInUser }) {
   const [instruments, setInstruments] = useState([]);
@@ -28,6 +29,8 @@ export default function CreateTrack({ loggedInUser }) {
   const [selectedInstrumentCategory, setSelectedInstrumentCategory] =
     useState(0);
   const [selectedInstruments, setSelectedInstruments] = useState([]);
+
+  const navigate = useNavigate();
 
   useEffect(() => {
     getTracksByUserId(loggedInUser.id).then((t) => {
@@ -118,11 +121,10 @@ export default function CreateTrack({ loggedInUser }) {
       };
 
       // Send to API
-      await createTrack(trackData);
-
-      console.log("Track created with data:", trackData);
-
-      // Reset form or redirect
+      await createTrack(trackData).then(() => {
+        console.log("Track created with data:", trackData);
+        navigate("/");
+      });
     } catch (error) {
       console.error("Error creating track:", error);
     }

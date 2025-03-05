@@ -41,3 +41,14 @@ export const createTrack = async (trackData) => {
 
   return await response.json();
 };
+
+//delete the track
+
+export const deletePost = async (trackId) => {
+  const response = await fetch(`${_apiUrl}/${trackId}`, {
+    method: "DELETE",
+  });
+  if (!response.ok) {
+    throw new Error(`HTTP Error! Status ${response.status}`);
+  }
+};
