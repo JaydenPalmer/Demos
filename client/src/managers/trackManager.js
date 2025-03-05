@@ -44,7 +44,7 @@ export const createTrack = async (trackData) => {
 
 //delete the track
 
-export const deletePost = async (trackId) => {
+export const deleteTrack = async (trackId) => {
   const response = await fetch(`${_apiUrl}/${trackId}`, {
     method: "DELETE",
   });

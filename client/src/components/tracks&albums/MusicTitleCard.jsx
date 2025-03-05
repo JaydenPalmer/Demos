@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { getTracksByUserId } from "../../managers/trackManager";
+import { deleteTrack, getTracksByUserId } from "../../managers/trackManager";
 import { Button } from "reactstrap";
 import { useNavigate } from "react-router-dom";
 
@@ -98,8 +98,22 @@ export default function MusicTitleCard({ loggedInUser }) {
                         color="danger"
                         onClick={(e) => {
                           e.preventDefault();
-                          console.log("delete");
-                          toggleMenu(item.id);
+                          if (
+                            window.confirm(
+                              "Are you sure you want to delete this track?"
+                            )
+                          ) {
+                            deleteTrack(item.id)
+                              .then(() => {
+                                toggleMenu(item.id);
+                                getTracksByUserId(loggedInUser.id).then(
+                                  setMusic
+                                );
+                              })
+                              .catch((error) => {
+                                console.error("Error deleting track:", error);
+                              });
+                          }
                         }}
                       >
                         Delete
