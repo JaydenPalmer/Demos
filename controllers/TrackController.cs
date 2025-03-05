@@ -26,7 +26,11 @@ public class TrackController : ControllerBase
 
     [HttpGet]
     [Authorize]
-    public IActionResult GetAll([FromQuery] int? userId)
+    public IActionResult GetAll(
+        [FromQuery] int? userId,
+        [FromQuery] int? trackId,
+        [FromQuery] int? albumId
+    )
     {
         try
         {
@@ -36,11 +40,147 @@ public class TrackController : ControllerBase
                 .Include(t => t.AlbumTracks)
                 .ThenInclude(at => at.Album)
                 .ThenInclude(a => a.Collaborators)
-                .ThenInclude(c => c.UserProfile);
+                .ThenInclude(c => c.UserProfile)
+                .Include(t => t.TrackInstruments)
+                .ThenInclude(ti => ti.Instrument);
 
+            // If a specific track ID is requested
+            if (trackId.HasValue)
+            {
+                var track = query.FirstOrDefault(t => t.Id == trackId.Value);
+
+                if (track == null)
+                {
+                    return NotFound($"Track with ID {trackId.Value} not found");
+                }
+
+                return Ok(
+                    new TrackDTO
+                    {
+                        Id = track.Id,
+                        Title = track.Title,
+                        AudioUrl = track.AudioUrl,
+                        PercentageDone = track.PercentageDone,
+                        UploadDate = track.UploadDate,
+                        Deadline = track.Deadline,
+                        IsComplete = track.IsComplete,
+                        CoverArtUrl = track.CoverArtUrl,
+
+                        Creator = new UserProfileDTO
+                        {
+                            Id = track.Creator.Id,
+                            FirstName = track.Creator.FirstName,
+                            LastName = track.Creator.LastName,
+                            UserName = track.Creator.UserName,
+                            Email = track.Creator.Email,
+                            ProfileImage = track.Creator.ProfileImage,
+                            IsArtist = track.Creator.IsArtist,
+                        },
+
+                        Album =
+                            track.AlbumTracks.FirstOrDefault() != null
+                                ? new AlbumDTO
+                                {
+                                    Id = track.AlbumTracks.FirstOrDefault().Album.Id,
+                                    Title = track.AlbumTracks.FirstOrDefault().Album.Title,
+                                    CoverArtUrl = track
+                                        .AlbumTracks.FirstOrDefault()
+                                        .Album.CoverArtUrl,
+                                    PercentageDone = track
+                                        .AlbumTracks.FirstOrDefault()
+                                        .Album.PercentageDone,
+                                    IsComplete = track
+                                        .AlbumTracks.FirstOrDefault()
+                                        .Album.IsComplete,
+                                    TrackOrder = track.AlbumTracks.FirstOrDefault().TrackOrder,
+                                }
+                                : null,
+
+                        Instruments = track
+                            .TrackInstruments.Select(ti => new InstrumentDTO
+                            {
+                                Id = ti.Instrument.Id,
+                                Name = ti.Instrument.Name,
+                                Description = ti.Instrument.Description,
+                                CategoryId = ti.Instrument.CategoryId,
+                                CategoryName = ti.Instrument.Category?.Name,
+                            })
+                            .ToList(),
+                    }
+                );
+            }
+
+            // If a specific album ID is requested
+            if (albumId.HasValue)
+            {
+                var album = _dbContext
+                    .Albums.Include(a => a.Creator)
+                    .Include(a => a.AlbumTracks)
+                    .ThenInclude(at => at.Track)
+                    .ThenInclude(t => t.TrackInstruments)
+                    .ThenInclude(ti => ti.Instrument)
+                    .FirstOrDefault(a => a.Id == albumId.Value);
+
+                if (album == null)
+                {
+                    return NotFound($"Album with ID {albumId.Value} not found");
+                }
+
+                return Ok(
+                    new AlbumDetailDTO
+                    {
+                        Id = album.Id,
+                        Title = album.Title,
+                        Description = album.Description,
+                        CoverArtUrl = album.CoverArtUrl,
+                        PercentageDone = album.PercentageDone,
+                        CreatedDate = album.CreatedDate,
+                        Deadline = album.Deadline,
+                        IsComplete = album.IsComplete,
+
+                        Creator = new UserProfileDTO
+                        {
+                            Id = album.Creator.Id,
+                            FirstName = album.Creator.FirstName,
+                            LastName = album.Creator.LastName,
+                            UserName = album.Creator.UserName,
+                            Email = album.Creator.Email,
+                            ProfileImage = album.Creator.ProfileImage,
+                            IsArtist = album.Creator.IsArtist,
+                        },
+
+                        Tracks = album
+                            .AlbumTracks.OrderBy(at => at.TrackOrder)
+                            .Select(at => new TrackDTO
+                            {
+                                Id = at.Track.Id,
+                                Title = at.Track.Title,
+                                AudioUrl = at.Track.AudioUrl,
+                                PercentageDone = at.Track.PercentageDone,
+                                UploadDate = at.Track.UploadDate,
+                                Deadline = at.Track.Deadline,
+                                IsComplete = at.Track.IsComplete,
+                                CoverArtUrl = at.Track.CoverArtUrl,
+                                TrackOrder = at.TrackOrder,
+
+                                Instruments = at
+                                    .Track.TrackInstruments.Select(ti => new InstrumentDTO
+                                    {
+                                        Id = ti.Instrument.Id,
+                                        Name = ti.Instrument.Name,
+                                        CategoryId = ti.Instrument.CategoryId,
+                                    })
+                                    .ToList(),
+                            })
+                            .ToList(),
+                    }
+                );
+            }
+
+            // If userId is provided, filter by user as before
             if (userId.HasValue)
             {
-                //check to see if user exsists
+                //check to see if user exists
                 bool userExists = _dbContext.UserProfiles.Any(u => u.Id == userId.Value);
                 if (!userExists)
                 {
@@ -216,6 +356,78 @@ public class TrackController : ControllerBase
         catch (Exception ex)
         {
             return StatusCode(500, $"Error processing your request {ex.Message}");
+        }
+    }
+
+    [HttpPut("{id}")]
+    [Authorize]
+    public IActionResult UpdateTrack(int id, TrackUpdateDTO trackDTO)
+    {
+        try
+        {
+            Track trackToEdit = _dbContext
+                .Tracks.Include(t => t.TrackInstruments)
+                .Include(t => t.Creator)
+                .SingleOrDefault(t => t.Id == id);
+
+            if (trackToEdit == null)
+            {
+                return NotFound("That track does not exist");
+            }
+
+            // Check if current user is the track creator
+            var userIdClaim = User.FindFirstValue(ClaimTypes.NameIdentifier);
+
+            // Get the UserProfile for the current user
+            var currentUserProfile = _dbContext.UserProfiles.FirstOrDefault(up =>
+                up.IdentityUserId == userIdClaim
+            );
+
+            if (currentUserProfile == null)
+            {
+                return Unauthorized("User profile not found");
+            }
+
+            // Check if current user is the track creator
+            if (trackToEdit.CreatorId != currentUserProfile.Id)
+            {
+                return Forbid("Only the track creator can edit this track");
+            }
+
+            trackToEdit.Title = trackDTO.Title;
+            trackToEdit.PercentageDone =
+                trackDTO.PercentageDone > 100 ? 100 : trackDTO.PercentageDone;
+            trackToEdit.Deadline = trackDTO.Deadline;
+            trackToEdit.IsComplete = trackDTO.PercentageDone >= 100;
+
+            if (!string.IsNullOrEmpty(trackDTO.AudioUrl))
+            {
+                trackToEdit.AudioUrl = trackDTO.AudioUrl;
+            }
+
+            if (!string.IsNullOrEmpty(trackDTO.CoverArtUrl))
+            {
+                trackToEdit.CoverArtUrl = trackDTO.CoverArtUrl;
+            }
+
+            if (trackDTO.InstrumentIds != null)
+            {
+                _dbContext.TrackInstruments.RemoveRange(trackToEdit.TrackInstruments);
+
+                foreach (var instrumentId in trackDTO.InstrumentIds)
+                {
+                    _dbContext.TrackInstruments.Add(
+                        new TrackInstrument { TrackId = id, InstrumentId = instrumentId }
+                    );
+                }
+            }
+
+            _dbContext.SaveChanges();
+            return NoContent();
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, $"There was an error processing your request {ex.Message}");
         }
     }
 }
