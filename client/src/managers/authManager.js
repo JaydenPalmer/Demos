@@ -27,7 +27,15 @@ export const tryGetLoggedInUser = () => {
 };
 
 export const register = (userProfile) => {
-  userProfile.password = btoa(userProfile.password);
+  // Log what we're working with
+  console.log("Before encoding:", userProfile);
+
+  // Use correct capitalization
+  userProfile.Password = btoa(userProfile.Password);
+
+  // Log what we're sending
+  console.log("After encoding:", userProfile);
+
   return fetch(_apiUrl + "/register", {
     credentials: "same-origin",
     method: "POST",
@@ -35,5 +43,14 @@ export const register = (userProfile) => {
       "Content-Type": "application/json",
     },
     body: JSON.stringify(userProfile),
-  }).then(() => tryGetLoggedInUser());
+  }).then((response) => {
+    if (!response.ok) {
+      // Try to get and log error details
+      return response.text().then((text) => {
+        console.error("Registration failed:", text);
+        throw new Error(`Registration failed: ${text}`);
+      });
+    }
+    return tryGetLoggedInUser();
+  });
 };
