@@ -130,66 +130,88 @@ public class AuthController : ControllerBase
     [HttpPost("register")]
     public async Task<IActionResult> Register(RegistrationDTO registration)
     {
-        var user = new IdentityUser
+        try
         {
-            UserName = registration.UserName,
-            Email = registration.Email,
-        };
-
-        var password = Encoding
-            .GetEncoding("iso-8859-1")
-            .GetString(Convert.FromBase64String(registration.Password));
-
-        var result = await _userManager.CreateAsync(user, password);
-        if (result.Succeeded)
-        {
-            // Add the user to the appropriate role based on IsArtist
-            if (registration.IsArtist)
+            // Create a new IdentityUser with the provided username and email
+            var user = new IdentityUser
             {
-                await _userManager.AddToRoleAsync(user, "Artist");
+                UserName = registration.UserName,
+                Email = registration.Email,
+            };
+
+            // Decode the base64 password as the frontend is encoding it with btoa()
+            var password = Encoding
+                .GetEncoding("iso-8859-1")
+                .GetString(Convert.FromBase64String(registration.Password));
+
+            // Attempt to create the user with the provided password
+            var result = await _userManager.CreateAsync(user, password);
+
+            if (result.Succeeded)
+            {
+                // Add the user to the appropriate role based on IsArtist
+                if (registration.IsArtist)
+                {
+                    await _userManager.AddToRoleAsync(user, "Artist");
+                }
+                else
+                {
+                    await _userManager.AddToRoleAsync(user, "Listener");
+                }
+
+                // Create and save the associated UserProfile with all required fields
+                _dbContext.UserProfiles.Add(
+                    new UserProfile
+                    {
+                        FirstName = registration.FirstName,
+                        LastName = registration.LastName,
+                        Email = registration.Email, // Make sure to include Email as it's required
+                        UserName = registration.UserName, // Make sure to include UserName as it's required
+                        ProfileImage = registration.ProfileImage, // Now provided by frontend
+                        IsArtist = registration.IsArtist, // Now provided by frontend
+                        JoinDate = DateTime.Now,
+                        IdentityUserId = user.Id,
+                    }
+                );
+                _dbContext.SaveChanges();
+
+                // Create claims for the user's identity
+                var claims = new List<Claim>
+                {
+                    new Claim(ClaimTypes.NameIdentifier, user.Id.ToString()),
+                    new Claim(ClaimTypes.Name, user.UserName.ToString()),
+                    new Claim(ClaimTypes.Email, user.Email),
+                };
+
+                // Add role claim
+                claims.Add(
+                    new Claim(ClaimTypes.Role, registration.IsArtist ? "Artist" : "Listener")
+                );
+
+                // Create the claims identity for authentication
+                var claimsIdentity = new ClaimsIdentity(
+                    claims,
+                    CookieAuthenticationDefaults.AuthenticationScheme
+                );
+
+                // Sign in the user
+                await HttpContext.SignInAsync(
+                    CookieAuthenticationDefaults.AuthenticationScheme,
+                    new ClaimsPrincipal(claimsIdentity)
+                );
+
+                return NoContent();
             }
             else
             {
-                await _userManager.AddToRoleAsync(user, "Listener");
+                // Return specific error information to help debug registration issues
+                return BadRequest(new { Errors = result.Errors.Select(e => e.Description) });
             }
-
-            _dbContext.UserProfiles.Add(
-                new UserProfile
-                {
-                    FirstName = registration.FirstName,
-                    LastName = registration.LastName,
-                    ProfileImage = registration.ProfileImage,
-                    IsArtist = registration.IsArtist,
-                    JoinDate = DateTime.Now,
-                    IdentityUserId = user.Id,
-                }
-            );
-            _dbContext.SaveChanges();
-
-            var claims = new List<Claim>
-            {
-                new Claim(ClaimTypes.NameIdentifier, user.Id.ToString()),
-                new Claim(ClaimTypes.Name, user.UserName.ToString()),
-                new Claim(ClaimTypes.Email, user.Email),
-            };
-
-            // Add role claim
-            claims.Add(new Claim(ClaimTypes.Role, registration.IsArtist ? "Artist" : "Listener"));
-
-            var claimsIdentity = new ClaimsIdentity(
-                claims,
-                CookieAuthenticationDefaults.AuthenticationScheme
-            );
-
-            HttpContext
-                .SignInAsync(
-                    CookieAuthenticationDefaults.AuthenticationScheme,
-                    new ClaimsPrincipal(claimsIdentity)
-                )
-                .Wait();
-
-            return Ok();
         }
-        return StatusCode(500);
+        catch (Exception ex)
+        {
+            // Log the exception or handle it appropriately
+            return StatusCode(500, new { Error = "Registration failed", Message = ex.Message });
+        }
     }
 }
