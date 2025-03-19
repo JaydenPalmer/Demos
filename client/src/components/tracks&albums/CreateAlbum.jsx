@@ -10,7 +10,8 @@ import {
   Card,
 } from "reactstrap";
 import { useEffect, useState } from "react";
-import { createTrack, getTracksByUserId } from "../../managers/trackManager";
+// import { createTrack } from "../../managers/trackManager";
+// import { createAlbum } from "../../managers/albumManager";
 import { getAllInstruments } from "../../managers/instrumentManager";
 import { getAllInstrumentCategories } from "../../managers/instrumentCategoryManager";
 import { uploadToCloudinary } from "../../managers/cloudinaryManager";
@@ -19,65 +20,117 @@ import { useNavigate } from "react-router-dom";
 export default function CreateAlbum({ loggedInUser }) {
   const [instruments, setInstruments] = useState([]);
   const [instrumentCategories, setInstrumentCategories] = useState([]);
-  const [formData, setFormData] = useState({
+  const [albumData, setAlbumData] = useState({
     title: "",
-    percentageDone: "",
-    description: "",
-    deadline: "",
-    coverArtUrl: "",
+    coverArtUrl: "https://picsum.photos/seed/default/300/300",
+    isComplete: false,
   });
+  const [tracks, setTracks] = useState([
+    {
+      title: "Track #1",
+      description: "",
+      percentageDone: "",
+      deadline: "",
+      coverArtUrl: "",
+      audioFile: null,
+      instrumentIds: [],
+    },
+  ]);
   const [selectedInstrumentCategory, setSelectedInstrumentCategory] =
     useState(0);
-  const [selectedInstruments, setSelectedInstruments] = useState([]);
+  const [activeTrackIndex, setActiveTrackIndex] = useState(0);
 
   const navigate = useNavigate();
 
   useEffect(() => {
-    getTracksByUserId(loggedInUser.id).then((t) => {
-      const trackNumber = `Track #${t.length}`;
-
-      const baseFormData = { ...formData };
-
-      baseFormData.title = trackNumber;
-      baseFormData.coverArtUrl = "https://picsum.photos/seed/default/300/300";
-
-      setFormData(baseFormData);
-
-      getAllInstruments().then(setInstruments);
-      getAllInstrumentCategories().then(setInstrumentCategories);
-    });
+    getAllInstruments().then(setInstruments);
+    getAllInstrumentCategories().then(setInstrumentCategories);
   }, [loggedInUser]);
 
-  const handleChange = (e) => {
-    const fieldName = e.target.name;
-    const newValue = e.target.value;
+  const handleAlbumChange = (e) => {
+    const { name, value, type, checked } = e.target;
+    setAlbumData({
+      ...albumData,
+      [name]: type === "checkbox" ? checked : value,
+    });
+  };
 
-    const updatedFormData = { ...formData };
-
-    if (fieldName === "title") {
-      updatedFormData.title = newValue;
-    } else if (fieldName === "percentageDone") {
-      updatedFormData.percentageDone = newValue;
-    } else if (fieldName === "description") {
-      updatedFormData.description = newValue;
-    } else if (fieldName === "deadline") {
-      updatedFormData.deadline = newValue;
-    }
-
-    setFormData(updatedFormData);
+  const handleTrackChange = (e) => {
+    const { name, value } = e.target;
+    const updatedTracks = [...tracks];
+    updatedTracks[activeTrackIndex] = {
+      ...updatedTracks[activeTrackIndex],
+      [name]: value,
+    };
+    setTracks(updatedTracks);
   };
 
   const handleInstrumentClick = (instrumentId) => {
-    setSelectedInstruments((prev) => {
-      // If instrument is already selected, remove it
-      if (prev.includes(instrumentId)) {
-        return prev.filter((id) => id !== instrumentId);
+    const updatedTracks = [...tracks];
+    const currentTrack = updatedTracks[activeTrackIndex];
+
+    if (currentTrack.instrumentIds.includes(instrumentId)) {
+      currentTrack.instrumentIds = currentTrack.instrumentIds.filter(
+        (id) => id !== instrumentId
+      );
+    } else {
+      currentTrack.instrumentIds.push(instrumentId);
+    }
+
+    setTracks(updatedTracks);
+  };
+
+  const handleFileChange = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      const updatedTracks = [...tracks];
+      updatedTracks[activeTrackIndex].audioFile = file;
+      setTracks(updatedTracks);
+    }
+  };
+
+  const addTrack = () => {
+    setTracks([
+      ...tracks,
+      {
+        title: `Track #${tracks.length + 1}`,
+        description: "",
+        percentageDone: "",
+        deadline: "",
+        coverArtUrl: "",
+        audioFile: null,
+        instrumentIds: [],
+      },
+    ]);
+    setActiveTrackIndex(tracks.length);
+
+    const fileInput = document.getElementById("audioFile");
+    if (fileInput) {
+      fileInput.value = "";
+    }
+  };
+
+  const removeTrack = (index) => {
+    if (tracks.length > 1) {
+      const newTracks = [];
+      for (let i = 0; i < tracks.length; i++) {
+        if (i !== index) {
+          newTracks.push(tracks[i]);
+        }
       }
-      // Otherwise add it to selected instruments
-      else {
-        return [...prev, instrumentId];
+
+      setTracks(newTracks);
+
+      if (activeTrackIndex === index) {
+        if (index > 0) {
+          setActiveTrackIndex(index - 1);
+        } else {
+          setActiveTrackIndex(0);
+        }
+      } else if (activeTrackIndex > index) {
+        setActiveTrackIndex(activeTrackIndex - 1);
       }
-    });
+    }
   };
 
   // Filter instruments by the selected category
@@ -90,53 +143,61 @@ export default function CreateAlbum({ loggedInUser }) {
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    // required fields
-    if (!formData.title) {
-      window.alert("Please enter a track title");
+    // Validate album data
+    if (!albumData.title) {
+      window.alert("Please enter an album title");
       return;
     }
 
-    if (!formData.audioFile) {
-      window.alert("Please upload an audio file");
-      return;
+    // Validate track data
+    for (let i = 0; i < tracks.length; i++) {
+      const track = tracks[i];
+      if (!track.title) {
+        window.alert(`Please enter a title for Track #${i + 1}`);
+        setActiveTrackIndex(i);
+        return;
+      }
+      if (!track.audioFile) {
+        window.alert(`Please upload an audio file for Track #${i + 1}`);
+        setActiveTrackIndex(i);
+        return;
+      }
     }
 
     try {
-      // Upload audio file if one exists
-      let audioUrl = null;
-      if (formData.audioFile) {
-        audioUrl = await uploadToCloudinary(formData.audioFile);
+      // First create the album
+      const album = await createAlbum({
+        title: albumData.title,
+        coverArtUrl: albumData.coverArtUrl,
+        isComplete: albumData.isComplete,
+      });
+
+      // Then create all tracks
+      for (let i = 0; i < tracks.length; i++) {
+        const track = tracks[i];
+
+        // Upload audio file to Cloudinary
+        const audioUrl = await uploadToCloudinary(track.audioFile);
+
+        // Create track with album reference
+        await createTrack({
+          title: track.title,
+          description: track.description,
+          percentageDone: track.percentageDone,
+          deadline: track.deadline ? new Date(track.deadline) : null,
+          coverArtUrl: track.coverArtUrl || albumData.coverArtUrl,
+          audioUrl: audioUrl,
+          creatorId: loggedInUser.id,
+          instrumentIds: track.instrumentIds,
+          albumId: album.id,
+          trackOrder: i + 1,
+        });
       }
 
-      // creating data object for backend with the audio url from cloudinary
-      const trackData = {
-        title: formData.title,
-        description: formData.description,
-        percentageDone: formData.percentageDone,
-        deadline: formData.deadline ? new Date(formData.deadline) : null,
-        coverArtUrl: formData.coverArtUrl,
-        audioUrl: audioUrl,
-        creatorId: loggedInUser.id,
-        instrumentIds: selectedInstruments,
-      };
-
-      // Send to API
-      await createTrack(trackData).then(() => {
-        console.log("Track created with data:", trackData);
-        navigate("/");
-      });
+      // Navigate back to the home page after successful creation
+      navigate("/");
     } catch (error) {
-      console.error("Error creating track:", error);
-    }
-  };
-
-  const handleFileChange = (e) => {
-    const file = e.target.files[0];
-    if (file) {
-      // storing the audio so there can be a preview and can be sent to cloudinary
-      const updatedFormData = { ...formData };
-      updatedFormData.audioFile = file;
-      setFormData(updatedFormData);
+      console.error("Error creating album:", error);
     }
   };
 
@@ -145,13 +206,20 @@ export default function CreateAlbum({ loggedInUser }) {
       className="container py-5"
       style={{ maxWidth: "900px", paddingBottom: "100px" }}
     >
-      <Form onSubmit={handleSubmit}>
-        <Row className="mb-4">
+      <h2 className="mb-4">Create New Album</h2>
+
+      {/* Album Information Form */}
+      <div className="mb-4">
+        <h4 className="mb-3">Album Details</h4>
+        <Row>
           <Col md={4} className="mb-4 mb-md-0">
             <div className="position-relative" style={{ aspectRatio: "1/1" }}>
               <img
-                src={"https://picsum.photos/seed/default/300/300"}
-                alt={`Cover art for new track`}
+                src={
+                  albumData.coverArtUrl ||
+                  "https://picsum.photos/seed/default/300/300"
+                }
+                alt="Album cover art"
                 style={{
                   width: "100%",
                   height: "100%",
@@ -165,167 +233,318 @@ export default function CreateAlbum({ loggedInUser }) {
                 size="sm"
                 className="position-absolute bottom-0 end-0 m-2"
                 style={{ opacity: 0.9 }}
+                onClick={() => {
+                  const url = prompt(
+                    "Enter cover art URL:",
+                    albumData.coverArtUrl
+                  );
+                  if (url) {
+                    setAlbumData({ ...albumData, coverArtUrl: url });
+                  }
+                }}
               >
                 Change Cover
               </Button>
             </div>
-            <FormGroup>
-              <Label for="audioFile" className="fw-bold mt-2">
-                Upload Audio
-              </Label>
-              <Input
-                type="file"
-                id="audioFile"
-                name="audioFile"
-                accept="audio/*"
-                onChange={handleFileChange}
-                className="mb-3"
-              />
-            </FormGroup>
-            {formData.audioFile && (
-              <div className="mb-3">
-                <audio
-                  controls
-                  src={URL.createObjectURL(formData.audioFile)}
-                  className="w-100"
-                />
-              </div>
-            )}
-            <div className="mt-4">
-              <h5 className="mb-2">Instrument Categories</h5>
-              <div className="d-flex flex-wrap gap-1">
-                {instrumentCategories.map((t) => (
-                  <Card
-                    className={`text-center tag-choice p-0 ${
-                      t.id === selectedInstrumentCategory && "tagChosen"
-                    }`}
-                    onClick={() => {
-                      if (selectedInstrumentCategory === t.id) {
-                        setSelectedInstrumentCategory(0);
-                      } else {
-                        setSelectedInstrumentCategory(t.id);
-                      }
-                    }}
-                    key={t.id}
-                    style={{
-                      cursor: "pointer",
-                      maxWidth: "fit-content",
-                      backgroundColor:
-                        t.id === selectedInstrumentCategory ? "#6c757d" : "",
-                      color: t.id === selectedInstrumentCategory ? "white" : "",
-                    }}
-                  >
-                    <CardBody
-                      className="py-1 px-2"
-                      style={{ fontSize: "0.8rem" }}
-                    >
-                      {t.name}
-                    </CardBody>
-                  </Card>
-                ))}
-              </div>
-
-              {/* Display instruments for the selected category */}
-              {selectedInstrumentCategory > 0 && (
-                <div className="mt-3">
-                  <h6 className="mb-2">Available Instruments</h6>
-                  <div className="d-flex flex-wrap gap-1">
-                    {filteredInstruments.length > 0 ? (
-                      filteredInstruments.map((instrument) => (
-                        <Card
-                          className="text-center p-0"
-                          onClick={() => handleInstrumentClick(instrument.id)}
-                          key={instrument.id}
-                          style={{
-                            cursor: "pointer",
-                            maxWidth: "fit-content",
-                            backgroundColor: selectedInstruments.includes(
-                              instrument.id
-                            )
-                              ? "#6c757d"
-                              : "#e9ecef",
-                            color: selectedInstruments.includes(instrument.id)
-                              ? "white"
-                              : "black",
-                          }}
-                        >
-                          <CardBody
-                            className="py-1 px-2"
-                            style={{ fontSize: "0.8rem" }}
-                          >
-                            {instrument.name}
-                          </CardBody>
-                        </Card>
-                      ))
-                    ) : (
-                      <p className="text-muted small">
-                        No instruments found in this category.
-                      </p>
-                    )}
-                  </div>
-                </div>
-              )}
-            </div>
           </Col>
-          {/* Track Title Input */}
           <Col md={8}>
             <FormGroup>
-              <Label for="title" className="fw-bold">
-                Track Title
+              <Label for="albumTitle" className="fw-bold">
+                Album Title
               </Label>
               <Input
                 type="text"
-                id="title"
+                id="albumTitle"
                 name="title"
-                placeholder="Enter track title"
-                value={formData.title}
-                onChange={handleChange}
+                placeholder="Enter album title"
+                value={albumData.title}
+                onChange={handleAlbumChange}
                 className="mb-3"
               />
             </FormGroup>
-            {/* Completion Percentage Input */}
-            <FormGroup>
-              <Label for="percentageDone" className="fw-bold">
-                Completion (%)
-              </Label>
+            <FormGroup check className="mb-3">
               <Input
-                type="number"
-                id="percentageDone"
-                name="percentageDone"
-                placeholder="Enter percentage complete"
-                value={formData.percentageDone}
-                onChange={handleChange}
-                min="0"
-                max="100"
-                className="mb-3"
+                type="checkbox"
+                id="isComplete"
+                name="isComplete"
+                checked={albumData.isComplete}
+                onChange={handleAlbumChange}
               />
-            </FormGroup>
-            {/* Deadline DATE Input */}
-            <FormGroup>
-              <Label for="deadline" className="fw-bold">
-                Deadline
+              <Label for="isComplete" check>
+                Mark album as complete
               </Label>
-              <Input
-                type="date"
-                id="deadline"
-                name="deadline"
-                value={formData.deadline}
-                onChange={handleChange}
-                className="mb-3"
-              />
             </FormGroup>
           </Col>
         </Row>
-        {/* Cancel and Create Btns */}
-        <div className="d-flex justify-content-end gap-2">
-          <Button color="secondary" outline>
-            Cancel
-          </Button>
-          <Button color="primary" type="submit">
-            Create Track
+      </div>
+
+      {/* Track Management */}
+      <div className="mb-4">
+        <div className="d-flex justify-content-between align-items-center mb-3">
+          <h4>Tracks ({tracks.length})</h4>
+          <Button color="primary" onClick={addTrack}>
+            Add Track
           </Button>
         </div>
-      </Form>
+
+        {/* Track Selector */}
+        <div className="d-flex flex-wrap gap-2 mb-4">
+          {tracks.map((track, index) => (
+            <Card
+              key={index}
+              className="p-0"
+              style={{
+                cursor: "pointer",
+                backgroundColor:
+                  activeTrackIndex === index ? "#6c757d" : "#e9ecef",
+                color: activeTrackIndex === index ? "white" : "black",
+                position: "relative",
+              }}
+              onClick={() => setActiveTrackIndex(index)}
+            >
+              <CardBody className="py-2 px-3">
+                {track.title || `Track #${index + 1}`}
+                {tracks.length > 1 && (
+                  <Button
+                    close
+                    size="sm"
+                    className="ms-2"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      removeTrack(index);
+                    }}
+                  />
+                )}
+              </CardBody>
+            </Card>
+          ))}
+        </div>
+
+        {/* Active Track Form */}
+        {tracks.length > 0 && (
+          <Form onSubmit={handleSubmit}>
+            <Row className="mb-4">
+              <Col md={4} className="mb-4 mb-md-0">
+                <div
+                  className="position-relative"
+                  style={{ aspectRatio: "1/1" }}
+                >
+                  <img
+                    src={
+                      tracks[activeTrackIndex].coverArtUrl ||
+                      albumData.coverArtUrl ||
+                      "https://picsum.photos/seed/default/300/300"
+                    }
+                    alt={`Cover art for ${tracks[activeTrackIndex].title}`}
+                    style={{
+                      width: "100%",
+                      height: "100%",
+                      objectFit: "cover",
+                      borderRadius: "8px",
+                      boxShadow: "0 4px 12px rgba(0,0,0,0.1)",
+                    }}
+                  />
+                  <Button
+                    color="primary"
+                    size="sm"
+                    className="position-absolute bottom-0 end-0 m-2"
+                    style={{ opacity: 0.9 }}
+                    onClick={() => {
+                      const url = prompt(
+                        "Enter track cover art URL (leave empty to use album cover):",
+                        tracks[activeTrackIndex].coverArtUrl
+                      );
+                      const updatedTracks = [...tracks];
+                      updatedTracks[activeTrackIndex].coverArtUrl = url;
+                      setTracks(updatedTracks);
+                    }}
+                  >
+                    Change Cover
+                  </Button>
+                </div>
+                <FormGroup>
+                  <Label for="audioFile" className="fw-bold mt-2">
+                    Upload Audio
+                  </Label>
+                  <Input
+                    type="file"
+                    id="audioFile"
+                    name="audioFile"
+                    accept="audio/*"
+                    onChange={handleFileChange}
+                    className="mb-3"
+                  />
+                </FormGroup>
+                {tracks[activeTrackIndex].audioFile && (
+                  <div className="mb-3">
+                    <audio
+                      controls
+                      src={URL.createObjectURL(
+                        tracks[activeTrackIndex].audioFile
+                      )}
+                      className="w-100"
+                    />
+                  </div>
+                )}
+                <div className="mt-4">
+                  <h5 className="mb-2">Instrument Categories</h5>
+                  <div className="d-flex flex-wrap gap-1">
+                    {instrumentCategories.map((category) => (
+                      <Card
+                        className={`text-center tag-choice p-0 ${
+                          category.id === selectedInstrumentCategory &&
+                          "tagChosen"
+                        }`}
+                        onClick={() => {
+                          if (selectedInstrumentCategory === category.id) {
+                            setSelectedInstrumentCategory(0);
+                          } else {
+                            setSelectedInstrumentCategory(category.id);
+                          }
+                        }}
+                        key={category.id}
+                        style={{
+                          cursor: "pointer",
+                          maxWidth: "fit-content",
+                          backgroundColor:
+                            category.id === selectedInstrumentCategory
+                              ? "#6c757d"
+                              : "",
+                          color:
+                            category.id === selectedInstrumentCategory
+                              ? "white"
+                              : "",
+                        }}
+                      >
+                        <CardBody
+                          className="py-1 px-2"
+                          style={{ fontSize: "0.8rem" }}
+                        >
+                          {category.name}
+                        </CardBody>
+                      </Card>
+                    ))}
+                  </div>
+
+                  {/* Display instruments for the selected category */}
+                  {selectedInstrumentCategory > 0 && (
+                    <div className="mt-3">
+                      <h6 className="mb-2">Available Instruments</h6>
+                      <div className="d-flex flex-wrap gap-1">
+                        {filteredInstruments.length > 0 ? (
+                          filteredInstruments.map((instrument) => (
+                            <Card
+                              className="text-center p-0"
+                              onClick={() =>
+                                handleInstrumentClick(instrument.id)
+                              }
+                              key={instrument.id}
+                              style={{
+                                cursor: "pointer",
+                                maxWidth: "fit-content",
+                                backgroundColor: tracks[
+                                  activeTrackIndex
+                                ].instrumentIds.includes(instrument.id)
+                                  ? "#6c757d"
+                                  : "#e9ecef",
+                                color: tracks[
+                                  activeTrackIndex
+                                ].instrumentIds.includes(instrument.id)
+                                  ? "white"
+                                  : "black",
+                              }}
+                            >
+                              <CardBody
+                                className="py-1 px-2"
+                                style={{ fontSize: "0.8rem" }}
+                              >
+                                {instrument.name}
+                              </CardBody>
+                            </Card>
+                          ))
+                        ) : (
+                          <p className="text-muted small">
+                            No instruments found in this category.
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </Col>
+              {/* Track Details Input */}
+              <Col md={8}>
+                <FormGroup>
+                  <Label for="title" className="fw-bold">
+                    Track Title
+                  </Label>
+                  <Input
+                    type="text"
+                    id="title"
+                    name="title"
+                    placeholder="Enter track title"
+                    value={tracks[activeTrackIndex].title}
+                    onChange={handleTrackChange}
+                    className="mb-3"
+                  />
+                </FormGroup>
+                <FormGroup>
+                  <Label for="description" className="fw-bold">
+                    Description
+                  </Label>
+                  <Input
+                    type="textarea"
+                    id="description"
+                    name="description"
+                    placeholder="Enter track description"
+                    value={tracks[activeTrackIndex].description}
+                    onChange={handleTrackChange}
+                    className="mb-3"
+                  />
+                </FormGroup>
+                <FormGroup>
+                  <Label for="percentageDone" className="fw-bold">
+                    Completion (%)
+                  </Label>
+                  <Input
+                    type="number"
+                    id="percentageDone"
+                    name="percentageDone"
+                    placeholder="Enter percentage complete"
+                    value={tracks[activeTrackIndex].percentageDone}
+                    onChange={handleTrackChange}
+                    min="0"
+                    max="100"
+                    className="mb-3"
+                  />
+                </FormGroup>
+                <FormGroup>
+                  <Label for="deadline" className="fw-bold">
+                    Deadline
+                  </Label>
+                  <Input
+                    type="date"
+                    id="deadline"
+                    name="deadline"
+                    value={tracks[activeTrackIndex].deadline}
+                    onChange={handleTrackChange}
+                    className="mb-3"
+                  />
+                </FormGroup>
+              </Col>
+            </Row>
+            {/* Cancel and Create Btns */}
+            <div className="d-flex justify-content-end gap-2 mt-4">
+              <Button color="secondary" outline onClick={() => navigate("/")}>
+                Cancel
+              </Button>
+              <Button color="primary" type="submit">
+                Create Album
+              </Button>
+            </div>
+          </Form>
+        )}
+      </div>
     </div>
   );
 }
