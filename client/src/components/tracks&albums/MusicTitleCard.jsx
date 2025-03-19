@@ -28,7 +28,7 @@ export default function MusicTitleCard({ loggedInUser }) {
   };
 
   const handleAlbumNavigation = () => {
-    window.alert("this has not been set up yet");
+    navigate("/createAlbum");
     setIsExpanded(false);
   };
 
@@ -42,7 +42,7 @@ export default function MusicTitleCard({ loggedInUser }) {
           {music.map((item) => (
             <div
               key={item.id}
-              className="col-12 col-sm-6 col-md-4 col-xl-3 mb-3"
+              className="col-12 col-sm-6 col-md-4 col-xl-3 mb-4"
             >
               <div
                 className="border-none h-100"

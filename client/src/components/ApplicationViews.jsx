@@ -5,6 +5,7 @@ import Register from "./auth/Register";
 import MusicTitleCard from "./tracks&albums/MusicTitleCard";
 import CreateTrack from "./tracks&albums/CreateTrack";
 import TrackDetailsView from "./tracks&albums/TrackDetailsView";
+import CreateAlbum from "./tracks&albums/CreateAlbum";
 
 export default function ApplicationViews({ loggedInUser, setLoggedInUser }) {
   return (
@@ -23,6 +24,14 @@ export default function ApplicationViews({ loggedInUser, setLoggedInUser }) {
           element={
             <AuthorizedRoute loggedInUser={loggedInUser}>
               {<CreateTrack loggedInUser={loggedInUser} />}
+            </AuthorizedRoute>
+          }
+        />
+        <Route
+          path="createAlbum"
+          element={
+            <AuthorizedRoute loggedInUser={loggedInUser}>
+              {<CreateAlbum loggedInUser={loggedInUser} />}
             </AuthorizedRoute>
           }
         />
