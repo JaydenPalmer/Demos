@@ -3,6 +3,7 @@ using System;
 using Demos.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
@@ -11,9 +12,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace Demos.Migrations
 {
     [DbContext(typeof(DemosDbContext))]
-    partial class DemosDbContextModelSnapshot : ModelSnapshot
+    [Migration("20250226173711_AddStandaloneTracks")]
+    partial class AddStandaloneTracks
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -1181,13 +1184,13 @@ namespace Demos.Migrations
                         {
                             Id = "dbc40bc6-0829-4ac5-a3ed-180f5e916a5f",
                             AccessFailedCount = 0,
-                            ConcurrencyStamp = "e0f10242-8beb-48aa-8c03-9e5531d513af",
+                            ConcurrencyStamp = "fcda28e7-4ea2-44eb-8d76-d7100b437ccc",
                             Email = "admina@strator.comx",
                             EmailConfirmed = false,
                             LockoutEnabled = false,
-                            PasswordHash = "AQAAAAIAAYagAAAAEO7v/LG6Uj2H8+Rt+A4GBk1OeLfHoIdQX5QCb+/P0s0q2/w0SaErlnFBJfZq8D2nLg==",
+                            PasswordHash = "AQAAAAIAAYagAAAAEOIIW4KHkydhqG5DzbOamEmG8gmaWrycHo2xntxgWn5ZYKOKRQkFKmAld9gjvt91iA==",
                             PhoneNumberConfirmed = false,
-                            SecurityStamp = "30f18af5-3228-46c1-9a9e-cf4c77f3cdc1",
+                            SecurityStamp = "82d7edd8-7b68-47d7-961a-d92d493795ef",
                             TwoFactorEnabled = false,
                             UserName = "Administrator"
                         },
@@ -1195,13 +1198,13 @@ namespace Demos.Migrations
                         {
                             Id = "d8d76512-74f1-43bb-b1fd-87d3a8aa36df",
                             AccessFailedCount = 0,
-                            ConcurrencyStamp = "51b039b3-e401-46a5-8345-378f9a4aa8c5",
+                            ConcurrencyStamp = "4188364c-4815-4f05-8f34-1ae664da5905",
                             Email = "melinda@example.com",
                             EmailConfirmed = false,
                             LockoutEnabled = false,
-                            PasswordHash = "AQAAAAIAAYagAAAAEKyp93mJ2KxgCMhSXAzJXKckmf/il0RzZcmEC9p83GvANNZJAfRqgUgUYWKY+nl8rg==",
+                            PasswordHash = "AQAAAAIAAYagAAAAEAILUToFdnSUvod+pxHQf6IU/zjhoOR80CB1G06SWOpSZ/2nJp141P/tkriJqnCIYw==",
                             PhoneNumberConfirmed = false,
-                            SecurityStamp = "25fab7ba-75e0-482a-a53f-6c6408eca199",
+                            SecurityStamp = "06fd1052-0d58-4652-bd17-daa69bffd599",
                             TwoFactorEnabled = false,
                             UserName = "melinda_j"
                         },
@@ -1209,13 +1212,13 @@ namespace Demos.Migrations
                         {
                             Id = "a7d21fac-3b26-454d-a5c5-5a3ded62b960",
                             AccessFailedCount = 0,
-                            ConcurrencyStamp = "06c1cfdc-5c61-473d-8185-8c0bf29d6052",
+                            ConcurrencyStamp = "3a44cf78-6be2-4f3f-8d0b-76d0a66b67f5",
                             Email = "daniel@example.com",
                             EmailConfirmed = false,
                             LockoutEnabled = false,
-                            PasswordHash = "AQAAAAIAAYagAAAAEFV9DQ4XrKboMtfxcZq2Y6onKWXL3MEzIoCQHSIifGSd6y7zPND2WNyKU3tHc1MQkw==",
+                            PasswordHash = "AQAAAAIAAYagAAAAEJEfqgcuHbVbmmaC+2511RQAXdvJX7r69RspE2RFypl/GtcMZnF5e8tkMRkWzPYvJA==",
                             PhoneNumberConfirmed = false,
-                            SecurityStamp = "5ad9afa3-8ca2-41c5-beac-16e4087d2d1d",
+                            SecurityStamp = "d640c7a8-b382-4401-b762-a00c45568ade",
                             TwoFactorEnabled = false,
                             UserName = "danielr"
                         },
@@ -1223,13 +1226,13 @@ namespace Demos.Migrations
                         {
                             Id = "c81d7adc-5f52-4b4a-a88c-e8d087d5402f",
                             AccessFailedCount = 0,
-                            ConcurrencyStamp = "042bbc6b-0fd1-449b-8c77-97195caf70e0",
+                            ConcurrencyStamp = "adc6fe5a-d9a9-4ac3-9a81-3b3c920ed446",
                             Email = "sara.c@example.com",
                             EmailConfirmed = false,
                             LockoutEnabled = false,
-                            PasswordHash = "AQAAAAIAAYagAAAAEL7fsQMiChIoMqT4k2rNJaOtfvn9AmGnjNn9/mZNZ6NJJhQ+IJoEdCPsbl6V4UxItw==",
+                            PasswordHash = "AQAAAAIAAYagAAAAECYcJcEdhoWOxsdbCndh2UBdkWikQc5xl7r0Y8zecDE4r+/ZRhAWBXYttGCJB4Bj5Q==",
                             PhoneNumberConfirmed = false,
-                            SecurityStamp = "295f5d90-c974-44a1-ad6f-846c18e1edaf",
+                            SecurityStamp = "c848959f-9a6a-4ab8-ab84-9ab824037cc8",
                             TwoFactorEnabled = false,
                             UserName = "sara_music"
                         },
@@ -1237,13 +1240,13 @@ namespace Demos.Migrations
                         {
                             Id = "9b2f41e3-1ba9-4df4-ae95-a0cf2c561b7e",
                             AccessFailedCount = 0,
-                            ConcurrencyStamp = "6db17db7-cbf4-49f3-aa1f-9f4c0a866840",
+                            ConcurrencyStamp = "37b43af5-9a23-43e6-9a20-9b30c4d2c3a8",
                             Email = "marcus@example.com",
                             EmailConfirmed = false,
                             LockoutEnabled = false,
-                            PasswordHash = "AQAAAAIAAYagAAAAEFXt/S6+8UzsjKNYZjrx9dH7pincbLDZoDa+FKobNRFckEORrTWiTTuDv0vPSN4Lig==",
+                            PasswordHash = "AQAAAAIAAYagAAAAEIKo+iCMdqZTuzLboJvJUFWHMvOZ0ZArzxEHhro1ycQLwPkrEnalS2xJM6cYWrtGYA==",
                             PhoneNumberConfirmed = false,
-                            SecurityStamp = "0e7f667f-206c-452b-9398-a18f85491f87",
+                            SecurityStamp = "58922c0b-e982-4d6f-a8d3-255fac7d35b5",
                             TwoFactorEnabled = false,
                             UserName = "marcus_j"
                         });
@@ -1426,8 +1429,7 @@ namespace Demos.Migrations
                 {
                     b.HasOne("Demos.Models.Album", "Album")
                         .WithMany("Notes")
-                        .HasForeignKey("AlbumId")
-                        .OnDelete(DeleteBehavior.Cascade);
+                        .HasForeignKey("AlbumId");
 
                     b.HasOne("Demos.Models.UserProfile", "Creator")
                         .WithMany("Notes")
@@ -1437,8 +1439,7 @@ namespace Demos.Migrations
 
                     b.HasOne("Demos.Models.Track", "Track")
                         .WithMany("Notes")
-                        .HasForeignKey("TrackId")
-                        .OnDelete(DeleteBehavior.Cascade);
+                        .HasForeignKey("TrackId");
 
                     b.Navigation("Album");
 
