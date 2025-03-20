@@ -4,8 +4,6 @@ public class TrackCreateDTO
 {
     public string Title { get; set; }
 
-    public string Description { get; set; }
-
     public string AudioUrl { get; set; }
 
     public string CoverArtUrl { get; set; }
