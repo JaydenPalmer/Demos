@@ -10,35 +10,38 @@ import {
   Card,
 } from "reactstrap";
 import { useEffect, useState } from "react";
-// import { createTrack } from "../../managers/trackManager";
-// import { createAlbum } from "../../managers/albumManager";
 import { getAllInstruments } from "../../managers/instrumentManager";
 import { getAllInstrumentCategories } from "../../managers/instrumentCategoryManager";
 import { uploadToCloudinary } from "../../managers/cloudinaryManager";
 import { useNavigate } from "react-router-dom";
+import { createAlbumWithTracks } from "../../managers/albumManager";
 
 export default function CreateAlbum({ loggedInUser }) {
   const [instruments, setInstruments] = useState([]);
   const [instrumentCategories, setInstrumentCategories] = useState([]);
   const [albumData, setAlbumData] = useState({
     title: "",
+    description: "description",
     coverArtUrl: "https://picsum.photos/seed/default/300/300",
     isComplete: false,
+    creatorId: loggedInUser?.id,
   });
   const [tracks, setTracks] = useState([
     {
       title: "Track #1",
-      description: "",
       percentageDone: "",
       deadline: "",
+      description: "",
       coverArtUrl: "",
       audioFile: null,
       instrumentIds: [],
+      creatorId: loggedInUser?.id,
     },
   ]);
   const [selectedInstrumentCategory, setSelectedInstrumentCategory] =
     useState(0);
   const [activeTrackIndex, setActiveTrackIndex] = useState(0);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const navigate = useNavigate();
 
@@ -94,12 +97,12 @@ export default function CreateAlbum({ loggedInUser }) {
       ...tracks,
       {
         title: `Track #${tracks.length + 1}`,
-        description: "",
         percentageDone: "",
         deadline: "",
         coverArtUrl: "",
         audioFile: null,
         instrumentIds: [],
+        creatorId: loggedInUser?.id,
       },
     ]);
     setActiveTrackIndex(tracks.length);
@@ -164,40 +167,53 @@ export default function CreateAlbum({ loggedInUser }) {
       }
     }
 
-    try {
-      // First create the album
-      const album = await createAlbum({
-        title: albumData.title,
-        coverArtUrl: albumData.coverArtUrl,
-        isComplete: albumData.isComplete,
-      });
+    setIsSubmitting(true);
 
-      // Then create all tracks
+    try {
+      // First upload all audio files to Cloudinary
+      const processedTracks = [];
+
       for (let i = 0; i < tracks.length; i++) {
         const track = tracks[i];
 
         // Upload audio file to Cloudinary
         const audioUrl = await uploadToCloudinary(track.audioFile);
 
-        // Create track with album reference
-        await createTrack({
+        // Create track object for the API
+        processedTracks.push({
           title: track.title,
-          description: track.description,
-          percentageDone: track.percentageDone,
+          percentageDone: track.percentageDone || 0,
+          description: track.description || "No description provided",
           deadline: track.deadline ? new Date(track.deadline) : null,
           coverArtUrl: track.coverArtUrl || albumData.coverArtUrl,
           audioUrl: audioUrl,
           creatorId: loggedInUser.id,
           instrumentIds: track.instrumentIds,
-          albumId: album.id,
-          trackOrder: i + 1,
         });
       }
+
+      // Structure data for AlbumWithTracksDTO
+      const albumWithTracksData = {
+        album: {
+          title: albumData.title,
+          coverArtUrl: albumData.coverArtUrl,
+          description: albumData.description,
+          isComplete: albumData.isComplete,
+          creatorId: loggedInUser.id,
+        },
+        tracks: processedTracks,
+      };
+
+      // Send to the API
+      await createAlbumWithTracks(albumWithTracksData);
 
       // Navigate back to the home page after successful creation
       navigate("/");
     } catch (error) {
       console.error("Error creating album:", error);
+      window.alert(`Error creating album: ${error.message}`);
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -489,20 +505,6 @@ export default function CreateAlbum({ loggedInUser }) {
                   />
                 </FormGroup>
                 <FormGroup>
-                  <Label for="description" className="fw-bold">
-                    Description
-                  </Label>
-                  <Input
-                    type="textarea"
-                    id="description"
-                    name="description"
-                    placeholder="Enter track description"
-                    value={tracks[activeTrackIndex].description}
-                    onChange={handleTrackChange}
-                    className="mb-3"
-                  />
-                </FormGroup>
-                <FormGroup>
                   <Label for="percentageDone" className="fw-bold">
                     Completion (%)
                   </Label>
@@ -535,11 +537,16 @@ export default function CreateAlbum({ loggedInUser }) {
             </Row>
             {/* Cancel and Create Btns */}
             <div className="d-flex justify-content-end gap-2 mt-4">
-              <Button color="secondary" outline onClick={() => navigate("/")}>
+              <Button
+                color="secondary"
+                outline
+                onClick={() => navigate("/")}
+                disabled={isSubmitting}
+              >
                 Cancel
               </Button>
-              <Button color="primary" type="submit">
-                Create Album
+              <Button color="primary" type="submit" disabled={isSubmitting}>
+                {isSubmitting ? "Creating Album..." : "Create Album"}
               </Button>
             </div>
           </Form>

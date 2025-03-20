@@ -8,4 +8,7 @@ public class AlbumDTO
     public int? PercentageDone { get; set; }
     public bool IsComplete { get; set; }
     public int? TrackOrder { get; set; }
+    public DateTime CreatedDate { get; set; } = DateTime.Now;
+    public UserProfileDTO Creator { get; set; }
+    public List<TrackDTO> Tracks { get; set; } = new List<TrackDTO>();
 }
