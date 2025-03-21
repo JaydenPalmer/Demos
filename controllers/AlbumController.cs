@@ -171,4 +171,56 @@ public class AlbumController : ControllerBase
             );
         }
     }
+
+    [HttpDelete("{id}")]
+    [Authorize]
+    public IActionResult DeleteAlbum(int id)
+    {
+        try
+        {
+            // Find the album with its associated album tracks
+            var album = _dbContext
+                .Albums.Include(a => a.AlbumTracks)
+                .ThenInclude(at => at.Track)
+                .FirstOrDefault(a => a.Id == id);
+
+            if (album == null)
+            {
+                return NotFound("Album not found");
+            }
+
+            // Get the track IDs associated with this album
+            var trackIds = album.AlbumTracks.Select(at => at.TrackId).ToList();
+
+            // Remove album-track relationships first
+            var albumTracks = _dbContext.AlbumTracks.Where(at => at.AlbumId == id).ToList();
+            _dbContext.AlbumTracks.RemoveRange(albumTracks);
+
+            // Remove track-instrument relationships for these tracks
+            var trackInstruments = _dbContext
+                .TrackInstruments.Where(ti => trackIds.Contains(ti.TrackId))
+                .ToList();
+            _dbContext.TrackInstruments.RemoveRange(trackInstruments);
+
+            // Remove the tracks themselves
+            var tracks = _dbContext.Tracks.Where(t => trackIds.Contains(t.Id)).ToList();
+            _dbContext.Tracks.RemoveRange(tracks);
+
+            // Remove the album
+            _dbContext.Albums.Remove(album);
+
+            // Save all changes
+            _dbContext.SaveChanges();
+
+            return NoContent();
+        }
+        catch (Exception ex)
+        {
+            // Log the full exception details
+            Console.WriteLine($"Deletion Error: {ex.Message}");
+            Console.WriteLine($"Stack Trace: {ex.StackTrace}");
+
+            return StatusCode(500, $"An unexpected error occurred: {ex.Message}");
+        }
+    }
 }

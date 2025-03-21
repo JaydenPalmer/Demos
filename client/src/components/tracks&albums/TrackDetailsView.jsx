@@ -1,34 +1,26 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import {
   deleteTrack,
   getTrackByTrackId,
   updateTrack,
 } from "../../managers/trackManager";
-import {
-  Button,
-  Progress,
-  Input,
-  FormGroup,
-  Label,
-  Card,
-  CardBody,
-} from "reactstrap";
-import { getAllInstrumentCategories } from "../../managers/instrumentCategoryManager";
-import { getAllInstruments } from "../../managers/instrumentManager";
+import { Button, Progress, Input, FormGroup, Label } from "reactstrap";
 import { uploadToCloudinary } from "../../managers/cloudinaryManager";
 
 export default function TrackDetailsView({ loggedInUser }) {
   const [track, setTrack] = useState(null);
-  const [isEditing, setIsEditing] = useState(false);
+  const [isEditing, setIsEditing] = useState(true);
   const [editForm, setEditForm] = useState({});
-  const [instruments, setInstruments] = useState([]);
-  const [instrumentCategories, setInstrumentCategories] = useState([]);
-  const [selectedInstrumentCategory, setSelectedInstrumentCategory] =
-    useState(0);
-  const [selectedInstruments, setSelectedInstruments] = useState([]);
   const [audioChange, setAudioChange] = useState(false);
 
+  // Audio player states
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [currentTime, setCurrentTime] = useState(0);
+  const [duration, setDuration] = useState(0);
+
+  const audioRef = useRef(null);
+  const progressRef = useRef(null);
   const { id } = useParams();
   const navigate = useNavigate();
 
@@ -47,65 +39,57 @@ export default function TrackDetailsView({ loggedInUser }) {
       setEditForm({
         title: track.title,
         percentageDone: track.percentageDone,
-        deadline: track.deadline
-          ? new Date(track.deadline).toISOString().split("T")[0]
-          : "",
-        coverArtUrl: track.coverArtUrl,
         audioUrl: track.audioUrl,
       });
-
-      // If the track has instruments, initialize selectedInstruments with their IDs
-      if (track.instruments && track.instruments.length > 0) {
-        setSelectedInstruments(
-          track.instruments.map((instrument) => instrument.id)
-        );
-      }
     }
   }, [track]);
 
-  // Load instrument categories and instruments when editing starts
-  useEffect(() => {
-    if (isEditing) {
-      getAllInstrumentCategories().then(setInstrumentCategories);
-      getAllInstruments().then(setInstruments);
+  // Function to play the audio
+  const playTrack = () => {
+    if (audioRef.current) {
+      audioRef.current.play().catch((error) => {
+        console.error("Error playing audio:", error);
+      });
+      setIsPlaying(true);
     }
-  }, [isEditing]);
-
-  if (!track) {
-    return (
-      <div className="d-flex justify-content-center mt-5">Track not found</div>
-    );
-  }
-
-  // Filter instruments by the selected category
-  const filteredInstruments = selectedInstrumentCategory
-    ? instruments.filter(
-        (instrument) => instrument.categoryId === selectedInstrumentCategory
-      )
-    : [];
-
-  const handleInstrumentClick = (instrumentId) => {
-    setSelectedInstruments((prev) => {
-      // If instrument is already selected, remove it
-      if (prev.includes(instrumentId)) {
-        return prev.filter((id) => id !== instrumentId);
-      }
-      // Otherwise add it to selected instruments
-      else {
-        return [...prev, instrumentId];
-      }
-    });
   };
 
-  const formatDate = (dateString) => {
-    if (!dateString) return "No deadline";
+  // Function to pause the audio
+  const pauseTrack = () => {
+    if (audioRef.current && isPlaying) {
+      audioRef.current.pause();
+      setIsPlaying(false);
+    }
+  };
 
-    // Get just the date part (YYYY-MM-DD) from the string
-    const datePart = dateString.split("T")[0];
-    const [year, month, day] = datePart.split("-");
+  // Handle audio time update
+  const handleTimeUpdate = () => {
+    if (audioRef.current) {
+      setCurrentTime(audioRef.current.currentTime);
+      setDuration(audioRef.current.duration || 0);
+    }
+  };
 
-    // Format it as MM/DD/YYYY (or however you prefer)
-    return `${month}/${day}/${year}`;
+  // Handle seeking (scrubbing)
+  const handleSeek = (e) => {
+    if (audioRef.current && progressRef.current) {
+      const progressRect = progressRef.current.getBoundingClientRect();
+      const clickPosition =
+        (e.clientX - progressRect.left) / progressRect.width;
+      const newTime = clickPosition * audioRef.current.duration;
+
+      audioRef.current.currentTime = newTime;
+      setCurrentTime(newTime);
+    }
+  };
+
+  // Format time (e.g., "3:45")
+  const formatTime = (timeInSeconds) => {
+    if (isNaN(timeInSeconds) || timeInSeconds === 0) return "0:00";
+
+    const minutes = Math.floor(timeInSeconds / 60);
+    const seconds = Math.floor(timeInSeconds % 60);
+    return `${minutes}:${seconds.toString().padStart(2, "0")}`;
   };
 
   const handleEditChange = (e) => {
@@ -132,10 +116,7 @@ export default function TrackDetailsView({ loggedInUser }) {
         ...track,
         title: editForm.title,
         percentageDone: parseInt(editForm.percentageDone),
-        deadline: editForm.deadline ? new Date(editForm.deadline) : null,
-        coverArtUrl: track.coverArtUrl,
         audioUrl: track.audioUrl,
-        instrumentIds: selectedInstruments,
       };
 
       if (editForm.audioFile) {
@@ -147,6 +128,7 @@ export default function TrackDetailsView({ loggedInUser }) {
         .then((data) => {
           setTrack(data);
           setIsEditing(false);
+          navigate(-1); // Go back to the album page
         })
         .catch((error) => {
           console.error("Error updating track:", error);
@@ -156,47 +138,31 @@ export default function TrackDetailsView({ loggedInUser }) {
     }
   };
 
+  if (!track) {
+    return (
+      <div
+        className="d-flex justify-content-center align-items-center"
+        style={{ height: "100vh", backgroundColor: "#0a0a0a" }}
+      >
+        <div className="spinner-border text-light" role="status">
+          <span className="visually-hidden">Loading...</span>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div
       style={{
+        backgroundColor: "#0a0a0a",
         color: "white",
         minHeight: "100vh",
+        paddingBottom: track.audioUrl ? "80px" : "0",
       }}
     >
-      <div className="container-fluid">
-        <div className="d-flex align-items-center">
-          <button
-            className="btn btn-link text-white-50 p-0 border-0"
-            onClick={() => navigate(-1)}
-            style={{ textDecoration: "none" }}
-          >
-            <i className="bi bi-chevron-left"></i>
-          </button>
-        </div>
-        <div className="d-flex align-items-center">
-          <button
-            className="btn btn-link text-white-50 p-0 border-0"
-            style={{ textDecoration: "none" }}
-          >
-            <i className="bi bi-link-45deg"></i>
-          </button>
-          <button
-            className="btn btn-link text-white-50 p-0 ms-3 border-0"
-            style={{ textDecoration: "none" }}
-          >
-            <i className="bi bi-search"></i>
-          </button>
-          <button
-            className="btn btn-link text-white-50 p-0 ms-3 border-0"
-            style={{ textDecoration: "none" }}
-          >
-            <i className="bi bi-person"></i>
-          </button>
-        </div>
-      </div>
-
       <div className="container-fluid p-3">
         <div className="row">
+          {/* Left side - Track artwork */}
           <div className="col-md-5 mb-4 text-center">
             <div
               className="position-relative"
@@ -215,272 +181,168 @@ export default function TrackDetailsView({ loggedInUser }) {
                   objectFit: "cover",
                 }}
               />
-              {/* <button
-                className="btn d-flex align-items-center justify-content-center"
-                style={{
-                  position: "absolute",
-                  right: "10px",
-                  bottom: "10px",
-                  backgroundColor: "white",
-                  width: "40px",
-                  height: "40px",
-                  borderRadius: "50%",
-                  padding: "0",
-                }}
-                onClick={() => {
-                  const audioElement = document.querySelector("audio");
-                  if (audioElement) audioElement.play();
-                }}
-              >
-                <i
-                  className="bi bi-play-fill text-dark"
-                  style={{ fontSize: "20px" }}
-                ></i>
-              </button> */}
+              {!isEditing && (
+                <button
+                  className="btn d-flex align-items-center justify-content-center"
+                  style={{
+                    position: "absolute",
+                    right: "10px",
+                    bottom: "10px",
+                    backgroundColor: "white",
+                    width: "40px",
+                    height: "40px",
+                    borderRadius: "50%",
+                    padding: "0",
+                  }}
+                  onClick={playTrack}
+                >
+                  <i
+                    className="bi bi-play-fill text-dark"
+                    style={{ fontSize: "20px" }}
+                  ></i>
+                </button>
+              )}
             </div>
           </div>
 
           {/* Right side - Track details */}
           <div className="col-md-7">
-            <div className="mb-4">
-              <h1 className="display-5 fw-bold mb-0">
-                {isEditing ? (
-                  <Input
-                    type="text"
-                    name="title"
-                    value={editForm.title}
-                    onChange={handleEditChange}
-                    className="form-control bg-transparent text-white border-dark"
-                  />
-                ) : (
-                  track.title
-                )}
-              </h1>
-              <p className="text-white-50 mb-1">
-                {track.creator?.userName || "Unknown Artist"} •
-                <span className="ms-1">
-                  {track.isComplete
-                    ? "Completed"
-                    : `${track.percentageDone}% complete`}
-                </span>{" "}
-                •<span className="ms-1">{formatDate(track.uploadDate)}</span>
-              </p>
-            </div>
-
-            {/* Add these sections only when in edit mode */}
-            {isEditing && (
+            {isEditing ? (
               <>
                 <div className="row mb-3">
-                  <div className="col-md-6">
-                    <div className="form-group">
-                      <label className="form-label text-white-50">
-                        Completion (%)
-                      </label>
+                  <div className="col-md-12 mb-3">
+                    <FormGroup>
                       <Input
-                        type="number"
-                        name="percentageDone"
-                        value={editForm.percentageDone}
+                        type="text"
+                        name="title"
+                        value={editForm.title}
                         onChange={handleEditChange}
-                        min="0"
-                        max="100"
-                        className="form-control form-control-sm bg-dark text-white border-dark"
+                        className="form-control-lg border-0"
+                        style={{
+                          backgroundColor: "transparent",
+                          color: "white",
+                          fontSize: "24px",
+                          padding: "0",
+                          outline: "none",
+                          boxShadow: "none",
+                        }}
+                        placeholder="Track Title"
                       />
-                    </div>
+                    </FormGroup>
                   </div>
-                  <div className="col-md-6">
-                    <div className="form-group">
-                      <label className="form-label text-white-50">
-                        Deadline
+                </div>
+
+                <div className="row mb-3">
+                  <div className="col-12">
+                    <div className="mb-3">
+                      <Label className="form-label text-white-50">
+                        Completion
+                      </Label>
+                      <div className="d-flex align-items-center">
+                        <div className="flex-grow-1 me-3">
+                          <input
+                            type="range"
+                            min="0"
+                            max="100"
+                            value={editForm.percentageDone}
+                            onChange={(e) => {
+                              handleEditChange({
+                                target: {
+                                  name: "percentageDone",
+                                  value: e.target.value,
+                                },
+                              });
+                            }}
+                            className="form-range"
+                            style={{ height: "8px" }}
+                          />
+                        </div>
+                        <span
+                          className="text-white-50 small"
+                          style={{ minWidth: "40px" }}
+                        >
+                          {editForm.percentageDone}%
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Audio Update Section */}
+                    <div
+                      className="upload-area p-4"
+                      style={{
+                        border: "2px dashed #666",
+                        borderRadius: "12px",
+                        textAlign: "center",
+                        backgroundColor: "#1a1a1a",
+                      }}
+                    >
+                      <div className="mb-3">
+                        <svg
+                          xmlns="http://www.w3.org/2000/svg"
+                          width="48"
+                          height="48"
+                          fill="currentColor"
+                          className="mb-3 text-white-50"
+                          viewBox="0 0 16 16"
+                        >
+                          <path d="M8 15A7 7 0 1 1 8 1a7 7 0 0 1 0 14zm0 1A8 8 0 1 0 8 0a8 8 0 0 0 0 16z" />
+                          <path d="M8 4a.5.5 0 0 1 .5.5v3h3a.5.5 0 0 1 0 1h-3v3a.5.5 0 0 1-1 0v-3h-3a.5.5 0 0 1 0-1h3v-3A.5.5 0 0 1 8 4z" />
+                        </svg>
+                        <h5>Update Audio</h5>
+                        <p className="text-white-50">WAV, MP3, AIFF and more</p>
+                      </div>
+
+                      <label
+                        className="btn btn-outline-light"
+                        style={{ cursor: "pointer" }}
+                      >
+                        Choose File
+                        <Input
+                          type="file"
+                          name="audioFile"
+                          accept="audio/*"
+                          onChange={(e) => {
+                            handleEditChange(e);
+                            if (e.target.files && e.target.files[0]) {
+                              setAudioChange(true);
+                            }
+                          }}
+                          style={{ display: "none" }}
+                        />
                       </label>
-                      <Input
-                        type="date"
-                        name="deadline"
-                        value={editForm.deadline}
-                        onChange={handleEditChange}
-                        className="form-control form-control-sm bg-dark text-white border-dark"
-                      />
+
+                      {editForm.audioFile && (
+                        <div className="mt-3">
+                          <audio
+                            controls
+                            src={URL.createObjectURL(editForm.audioFile)}
+                            className="w-100"
+                            style={{
+                              borderRadius: "4px",
+                              backgroundColor: "#2a2a2a",
+                            }}
+                          >
+                            Your browser does not support the audio element.
+                          </audio>
+                        </div>
+                      )}
                     </div>
                   </div>
                 </div>
               </>
-            )}
-
-            {/* Audio player */}
-            {(track.audioUrl || (editForm.audioFile && audioChange)) && (
-              <div className="mb-4">
-                <audio
-                  controls
-                  src={
-                    editForm.audioFile && audioChange
-                      ? URL.createObjectURL(editForm.audioFile)
-                      : track.audioUrl
-                  }
-                  className="w-100"
-                  style={{
-                    borderRadius: "4px",
-                    backgroundColor: "#1a1a1a",
-                  }}
-                >
-                  Your browser does not support the audio element.
-                </audio>
-
-                {isEditing && (
-                  <div className="mt-3">
-                    <Input
-                      type="file"
-                      id="audioFile"
-                      name="audioFile"
-                      accept="audio/*"
-                      onChange={(e) => {
-                        handleEditChange(e);
-                        if (e.target.files && e.target.files[0]) {
-                          setAudioChange(true);
-                        }
-                      }}
-                      className="form-control bg-dark text-white border-dark"
-                    />
-                  </div>
-                )}
-              </div>
-            )}
-
-            {/* Track details that are always visible */}
-            {!isEditing && track.deadline && (
-              <div className="mb-3">
-                <p className="mb-1 text-white-50">
-                  <strong>Deadline:</strong> {formatDate(track.deadline)}
+            ) : (
+              <>
+                <h1 className="display-5 fw-bold mb-0">{track.title}</h1>
+                <p className="text-white-50 mb-1">
+                  {track.creator?.userName || "Unknown Artist"} •
+                  <span className="ms-1">
+                    {track.isComplete
+                      ? "Completed"
+                      : `${track.percentageDone}% complete`}
+                  </span>
                 </p>
-              </div>
+              </>
             )}
-
-            {/* Album info */}
-            {track.album && (
-              <div className="card bg-dark mb-4 border-0">
-                <div className="card-body p-2">
-                  <div
-                    className="d-flex align-items-center"
-                    style={{ cursor: "pointer" }}
-                    onClick={() => navigate(`/album/${track.album.id}`)}
-                  >
-                    <div className="me-3">
-                      <img
-                        src={
-                          track.album.coverArtUrl ||
-                          "https://picsum.photos/seed/album/100/100"
-                        }
-                        alt={track.album.title}
-                        style={{
-                          width: "50px",
-                          height: "50px",
-                          objectFit: "cover",
-                          borderRadius: "4px",
-                        }}
-                      />
-                    </div>
-                    <div>
-                      <p className="card-title mb-0">{track.album.title}</p>
-                      <p className="card-text small text-white-50">
-                        Track #{track.album.trackOrder}
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {/* Instruments section */}
-            <div className="mb-4">
-              {isEditing ? (
-                <>
-                  <p className="text-white-50 mb-2">Select instruments:</p>
-
-                  <div className="mb-3">
-                    <div className="d-flex flex-wrap gap-2 mb-2">
-                      {instrumentCategories.map((category) => (
-                        <button
-                          key={category.id}
-                          onClick={() => {
-                            if (selectedInstrumentCategory === category.id) {
-                              setSelectedInstrumentCategory(0);
-                            } else {
-                              setSelectedInstrumentCategory(category.id);
-                            }
-                          }}
-                          className={`btn btn-sm ${
-                            selectedInstrumentCategory === category.id
-                              ? "btn-secondary"
-                              : "btn-outline-secondary"
-                          }`}
-                        >
-                          {category.name}
-                        </button>
-                      ))}
-                    </div>
-
-                    {selectedInstrumentCategory > 0 && (
-                      <div className="d-flex flex-wrap gap-2 mb-3">
-                        {filteredInstruments.length > 0 ? (
-                          filteredInstruments.map((instrument) => (
-                            <button
-                              key={instrument.id}
-                              onClick={() =>
-                                handleInstrumentClick(instrument.id)
-                              }
-                              className={`btn btn-sm ${
-                                selectedInstruments.includes(instrument.id)
-                                  ? "btn-light text-dark"
-                                  : "btn-outline-light"
-                              }`}
-                            >
-                              {instrument.name}
-                            </button>
-                          ))
-                        ) : (
-                          <p className="text-muted small">
-                            No instruments found in this category.
-                          </p>
-                        )}
-                      </div>
-                    )}
-                  </div>
-
-                  <div className="d-flex flex-wrap gap-2">
-                    {instruments
-                      .filter((i) => selectedInstruments.includes(i.id))
-                      .map((instrument) => (
-                        <span
-                          key={instrument.id}
-                          className="badge bg-secondary text-white rounded-pill px-3 py-2"
-                        >
-                          {instrument.name}
-                          <button
-                            className="btn-close btn-close-white ms-2"
-                            style={{ fontSize: "0.5rem" }}
-                            onClick={() => handleInstrumentClick(instrument.id)}
-                          ></button>
-                        </span>
-                      ))}
-                  </div>
-                </>
-              ) : (
-                track.instruments &&
-                track.instruments.length > 0 && (
-                  <>
-                    <p className="text-white-50 mb-2">Instruments:</p>
-                    <div className="d-flex flex-wrap gap-2">
-                      {track.instruments.map((instrument) => (
-                        <span
-                          key={instrument.id}
-                          className="badge bg-dark text-white-50 border border-secondary rounded-pill px-3 py-2"
-                        >
-                          {instrument.name}
-                        </span>
-                      ))}
-                    </div>
-                  </>
-                )
-              )}
-            </div>
 
             {/* Edit/Save/Delete buttons */}
             <div className="d-flex justify-content-between mt-4">
@@ -539,30 +401,110 @@ export default function TrackDetailsView({ loggedInUser }) {
             </div>
           </div>
         </div>
+      </div>
 
-        <div className="row mt-4">
-          <div className="col-12">
-            {track.instruments && track.instruments.length > 0 && (
-              <div className="mb-3">
-                {/* Hidden section for mobile view (appears below) */}
-                <div className="d-md-none">
-                  <p className="text-white-50 mb-2">Instruments:</p>
-                  <div className="d-flex flex-wrap gap-2">
-                    {track.instruments.map((instrument) => (
-                      <span
-                        key={instrument.id}
-                        className="badge bg-dark text-white-50 border border-secondary rounded-pill px-3 py-2"
-                      >
-                        {instrument.name}
-                      </span>
-                    ))}
-                  </div>
+      {/* Fixed bottom player with play/pause buttons and scrubbing */}
+      {!isEditing && track.audioUrl && (
+        <div
+          className="fixed-bottom py-2 px-3"
+          style={{
+            backgroundColor: "#181818",
+            borderTop: "1px solid #333",
+            boxShadow: "0 -4px 12px rgba(0,0,0,0.4)",
+          }}
+        >
+          {/* Scrubbing progress bar at top of player */}
+          <div
+            ref={progressRef}
+            className="position-absolute top-0 start-0 end-0"
+            style={{ cursor: "pointer", height: "6px" }}
+            onClick={handleSeek}
+          >
+            <Progress
+              value={(currentTime / duration) * 100 || 0}
+              className="rounded-0"
+              style={{
+                height: "6px",
+                backgroundColor: "#333",
+                cursor: "pointer",
+              }}
+            />
+          </div>
+
+          <div className="d-flex align-items-center pt-1 mt-1">
+            {/* Track thumbnail */}
+            <div
+              className="me-3 d-none d-sm-block"
+              style={{ width: "50px", height: "50px" }}
+            >
+              <img
+                src={
+                  track.coverArtUrl ||
+                  "https://picsum.photos/seed/default/50/50"
+                }
+                alt="Track cover"
+                className="rounded"
+                style={{ width: "100%", height: "100%", objectFit: "cover" }}
+              />
+            </div>
+
+            {/* Track info */}
+            <div className="flex-grow-1">
+              <div className="d-flex justify-content-between align-items-center">
+                <div>
+                  <p className="mb-0 fw-bold">{track.title}</p>
+                  <p className="mb-0 text-white-50 small">
+                    {track.creator?.userName}
+                  </p>
+                </div>
+                <div className="text-white-50 small d-none d-md-block">
+                  {formatTime(currentTime)} / {formatTime(duration)}
                 </div>
               </div>
-            )}
+            </div>
+
+            {/* Player controls */}
+            <div className="ms-3 d-flex align-items-center">
+              {/* Play button */}
+              {!isPlaying && (
+                <button
+                  className="btn btn-light btn-sm rounded-circle d-flex align-items-center justify-content-center me-2"
+                  style={{ width: "38px", height: "38px" }}
+                  onClick={playTrack}
+                >
+                  <i className="bi bi-play-fill fs-5"></i>
+                </button>
+              )}
+
+              {/* Pause button */}
+              {isPlaying && (
+                <button
+                  className="btn btn-light btn-sm rounded-circle d-flex align-items-center justify-content-center me-2"
+                  style={{ width: "38px", height: "38px" }}
+                  onClick={pauseTrack}
+                >
+                  <i className="bi bi-pause-fill fs-5"></i>
+                </button>
+              )}
+
+              {/* Time display for mobile */}
+              <div className="text-white-50 small d-block d-md-none">
+                {formatTime(currentTime)}
+              </div>
+            </div>
           </div>
         </div>
-      </div>
+      )}
+
+      {/* Hidden audio element */}
+      <audio
+        ref={audioRef}
+        src={track.audioUrl}
+        className="d-none"
+        onTimeUpdate={handleTimeUpdate}
+        onEnded={() => setIsPlaying(false)}
+        onLoadedMetadata={(e) => setDuration(e.target.duration)}
+      />
     </div>
   );
 }
