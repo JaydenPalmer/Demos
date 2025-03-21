@@ -37,7 +37,7 @@ export default function NavBar({ loggedInUser, setLoggedInUser }) {
               {open && (
                 <div className="logout-dropdown">
                   <Button
-                    color="primary"
+                    color="blue"
                     onClick={(e) => {
                       e.preventDefault();
                       setOpen(false);
